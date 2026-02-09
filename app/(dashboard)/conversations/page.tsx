@@ -14,39 +14,67 @@ interface Conversation {
   direction: string
 }
 
+const PAGE_SIZE = 20
+
 export default function ConversationsPage() {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState<'all' | 'unread'>('all')
+  const [hasMore, setHasMore] = useState(true)
+  const [page, setPage] = useState(1)
+
+  async function fetchConversations(pageNum: number = 1, append: boolean = false) {
+    try {
+      if (append) {
+        setLoadingMore(true)
+      } else {
+        setLoading(true)
+      }
+      
+      const token = ApexSession.getToken()
+      const res = await fetch(`/api/conversations?limit=${PAGE_SIZE}&offset=${(pageNum - 1) * PAGE_SIZE}`, { 
+        cache: 'no-store',
+        headers: { 
+          'Cache-Control': 'no-cache',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        const newConversations = data.conversations || []
+        
+        if (append) {
+          setConversations(prev => [...prev, ...newConversations])
+        } else {
+          setConversations(newConversations)
+        }
+        
+        // If we got fewer than PAGE_SIZE, there's no more data
+        setHasMore(newConversations.length >= PAGE_SIZE)
+        setError(null)
+      } else {
+        setError('Failed to load conversations')
+      }
+    } catch (err) {
+      console.error('Failed to fetch conversations:', err)
+      setError('Failed to load conversations')
+    } finally {
+      setLoading(false)
+      setLoadingMore(false)
+    }
+  }
 
   useEffect(() => {
-    async function fetchConversations() {
-      try {
-        const token = ApexSession.getToken()
-        const res = await fetch('/api/conversations', { 
-          cache: 'no-store',
-          headers: { 
-            'Cache-Control': 'no-cache',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-          },
-        })
-        if (res.ok) {
-          const data = await res.json()
-          setConversations(data.conversations || [])
-          setError(null)
-        } else {
-          setError('Failed to load conversations')
-        }
-      } catch (err) {
-        console.error('Failed to fetch conversations:', err)
-        setError('Failed to load conversations')
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchConversations()
+    fetchConversations(1, false)
   }, [])
+
+  function loadMore() {
+    const nextPage = page + 1
+    setPage(nextPage)
+    fetchConversations(nextPage, true)
+  }
 
   const filteredConversations = filter === 'unread' 
     ? conversations.filter(c => c.unread)
@@ -185,9 +213,33 @@ export default function ConversationsPage() {
         </div>
       )}
 
+      {/* Load More Button */}
+      {hasMore && filteredConversations.length > 0 && (
+        <div className="text-center mt-6">
+          <button
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="px-6 py-3 bg-apex-purple/20 hover:bg-apex-purple/30 text-apex-purple font-medium rounded-xl transition-colors disabled:opacity-50"
+          >
+            {loadingMore ? (
+              <span className="flex items-center gap-2">
+                <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                Loading...
+              </span>
+            ) : (
+              'Load More Conversations'
+            )}
+          </button>
+        </div>
+      )}
+
       {/* Info */}
       <p className="text-center text-gray-600 text-sm mt-6">
         Showing {filteredConversations.length} conversation{filteredConversations.length !== 1 ? 's' : ''}
+        {!hasMore && filteredConversations.length > 0 && ' • All loaded'}
       </p>
     </div>
   )

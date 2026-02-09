@@ -40,10 +40,17 @@ export async function GET(request: Request) {
       })
     }
 
-    const conversations = await getConversations(locationId, apiKey, 50)
+    // Parse limit and offset from query params
+    const { searchParams } = new URL(request.url)
+    const limit = parseInt(searchParams.get('limit') || '100')
+    const offset = parseInt(searchParams.get('offset') || '0')
+
+    // Fetch more than needed to account for filtering, then slice
+    const fetchLimit = Math.min(limit + offset + 50, 200) // GHL max is usually 100-200
+    const allConversations = await getConversations(locationId, apiKey, fetchLimit)
     
     // Format for the frontend
-    const formatted = conversations.map(c => ({
+    const formatted = allConversations.map(c => ({
       id: c.id,
       name: c.contactName || c.fullName,
       lastMessage: c.lastMessageBody?.substring(0, 100) || 'No messages yet',
@@ -54,7 +61,10 @@ export async function GET(request: Request) {
       direction: c.lastMessageDirection,
     }))
 
-    return NextResponse.json({ conversations: formatted })
+    // Apply pagination (offset/limit) after filtering
+    const paginated = formatted.slice(offset, offset + limit)
+
+    return NextResponse.json({ conversations: paginated })
   } catch (error) {
     console.error('Get conversations error:', error)
     return NextResponse.json({ error: 'Failed to load conversations' }, { status: 500 })
