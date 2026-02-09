@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { sendMagicLinkEmail } from '@/lib/email'
 
 const API_URL = process.env.DASHBOARD_API_URL || 'https://apex-dashboard-api-5r3u.onrender.com'
 
@@ -11,7 +12,9 @@ export async function POST(request: Request) {
     }
 
     // Step 1: Look up customer in API
-    const customerRes = await fetch(`${API_URL}/customers/${encodeURIComponent(email)}`)
+    const customerRes = await fetch(`${API_URL}/customers/${encodeURIComponent(email)}`, {
+      cache: 'no-store',
+    })
     
     if (!customerRes.ok) {
       return NextResponse.json({ 
@@ -31,6 +34,7 @@ export async function POST(request: Request) {
         apiKey: customer.apiKey || '',
         businessName: customer.businessName || 'Your Business',
       }),
+      cache: 'no-store',
     })
 
     if (!tokenRes.ok) {
@@ -39,20 +43,19 @@ export async function POST(request: Request) {
 
     const { token } = await tokenRes.json()
 
-    // Step 3: For now, return the magic link directly (we'll add email later)
-    // In production, this would send an email via Zoho/n8n
+    // Step 3: Build magic link
     const dashboardUrl = process.env.NEXT_PUBLIC_DASHBOARD_URL || 'https://apex-dashboard-lt3v.onrender.com'
     const magicLink = `${dashboardUrl}/auth/verify?token=${token}`
 
-    // TODO: Send email via Zoho
-    // For testing, we'll return the link in the response (remove in production)
-    console.log('Magic link:', magicLink)
+    // Step 4: Send email
+    try {
+      await sendMagicLinkEmail(customer.email, magicLink, customer.businessName || 'Your Business')
+    } catch (emailError) {
+      console.error('Failed to send email:', emailError)
+      return NextResponse.json({ error: 'Failed to send email. Please try again.' }, { status: 500 })
+    }
 
-    return NextResponse.json({ 
-      success: true,
-      // TEMP: Return link for testing (remove in production)
-      _debug_link: magicLink
-    })
+    return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Auth request error:', error)
     return NextResponse.json({ error: 'Something went wrong' }, { status: 500 })
