@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { ApexSession } from '@/lib/session'
 
 const navItems = [
   { href: '/dashboard', label: 'Overview', icon: HomeIcon },
@@ -14,6 +15,13 @@ const navItems = [
 export default function MobileNav({ businessName }: { businessName: string }) {
   const [isOpen, setIsOpen] = useState(false)
   const pathname = usePathname()
+  const router = useRouter()
+
+  const handleLogout = () => {
+    ApexSession.clear()
+    setIsOpen(false)
+    router.push('/login')
+  }
 
   return (
     <>
@@ -83,13 +91,13 @@ export default function MobileNav({ businessName }: { businessName: string }) {
 
         {/* Sign out */}
         <div className="p-2 border-t border-apex-border bg-[#0F0F1A]">
-          <Link
-            href="/api/auth/logout"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:text-red-400 hover:bg-white/5"
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:text-red-400 hover:bg-white/5 w-full"
           >
             <LogoutIcon className="w-5 h-5" />
             <span>Sign out</span>
-          </Link>
+          </button>
         </div>
       </div>
       )}

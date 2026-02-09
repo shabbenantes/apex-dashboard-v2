@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { ApexSession } from '@/lib/session'
 
 const navItems = [
   { href: '/dashboard', label: 'Overview', icon: HomeIcon },
@@ -12,6 +13,12 @@ const navItems = [
 
 export default function Sidebar({ businessName }: { businessName: string }) {
   const pathname = usePathname()
+  const router = useRouter()
+
+  const handleLogout = () => {
+    ApexSession.clear()
+    router.push('/login')
+  }
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-64 bg-apex-card border-r border-apex-border flex flex-col">
@@ -53,13 +60,13 @@ export default function Sidebar({ businessName }: { businessName: string }) {
 
       {/* Footer */}
       <div className="p-4 border-t border-apex-border">
-        <Link
-          href="/api/auth/logout"
-          className="nav-link text-gray-500 hover:text-red-400"
+        <button
+          onClick={handleLogout}
+          className="nav-link text-gray-500 hover:text-red-400 w-full"
         >
           <LogoutIcon className="w-5 h-5" />
           <span>Sign out</span>
-        </Link>
+        </button>
       </div>
     </aside>
   )

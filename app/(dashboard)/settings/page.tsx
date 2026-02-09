@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { ApexSession } from '@/lib/session'
 
 const defaultSettings = {
   businessName: '',
@@ -44,11 +45,12 @@ export default function SettingsPage() {
   useEffect(() => {
     async function fetchSettings() {
       try {
+        const token = ApexSession.getToken()
         const res = await fetch('/api/settings', { 
-          credentials: 'include',
           cache: 'no-store',
           headers: {
             'Cache-Control': 'no-cache',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
           },
         })
         if (res.ok) {
@@ -79,11 +81,14 @@ export default function SettingsPage() {
     setSaving(true)
     setError(null)
     try {
+      const token = ApexSession.getToken()
       const res = await fetch('/api/settings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify(settings),
-        credentials: 'include',
         cache: 'no-store',
       })
       if (res.ok) {

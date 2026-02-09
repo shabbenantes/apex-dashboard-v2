@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { getConversations, formatRelativeTime } from '@/lib/ghl'
 
 // Force dynamic rendering - never cache this route
@@ -8,9 +7,9 @@ export const revalidate = 0
 
 const API_URL = process.env.DASHBOARD_API_URL || 'https://apex-dashboard-api-5r3u.onrender.com'
 
-async function getSessionData() {
-  const cookieStore = await cookies()
-  const sessionId = cookieStore.get('apex_session')?.value
+async function getSessionData(request: Request) {
+  const authHeader = request.headers.get('Authorization')
+  const sessionId = authHeader?.replace('Bearer ', '')
   
   if (!sessionId) return null
   
@@ -25,9 +24,9 @@ async function getSessionData() {
   return response.json()
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const session = await getSessionData()
+    const session = await getSessionData(request)
     if (!session) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }

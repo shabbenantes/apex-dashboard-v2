@@ -1,17 +1,47 @@
-import { redirect } from 'next/navigation'
-import { getSession } from '@/lib/auth'
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { ApexSession, SessionData } from '@/lib/session'
 import Sidebar from '@/components/Sidebar'
 import MobileNav from '@/components/MobileNav'
 
-export default async function DashboardLayout({
+export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const session = await getSession()
-  
+  const router = useRouter()
+  const [session, setSession] = useState<SessionData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    // Check for valid session
+    const currentSession = ApexSession.get()
+    
+    if (!currentSession || !ApexSession.isValid()) {
+      // No valid session, redirect to login
+      router.push('/login')
+      return
+    }
+    
+    setSession(currentSession)
+    setIsLoading(false)
+  }, [router])
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-apex-dark">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-apex-purple border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
   if (!session) {
-    redirect('/login')
+    return null
   }
 
   return (

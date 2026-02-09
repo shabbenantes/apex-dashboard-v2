@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 
 // Force dynamic rendering - never cache this route
 export const dynamic = 'force-dynamic'
@@ -7,14 +6,13 @@ export const revalidate = 0
 
 const API_URL = process.env.DASHBOARD_API_URL || 'https://apex-dashboard-api-5r3u.onrender.com'
 
-async function getSessionData() {
-  const cookieStore = await cookies()
-  const sessionId = cookieStore.get('apex_session')?.value
-  
-  console.log('Settings API - Session cookie:', sessionId ? 'present' : 'missing')
+async function getSessionData(request: Request) {
+  // Get token from Authorization header (Bearer token)
+  const authHeader = request.headers.get('Authorization')
+  const sessionId = authHeader?.replace('Bearer ', '')
   
   if (!sessionId) {
-    console.log('Settings API - No session cookie found')
+    console.log('Settings API - No Authorization header')
     return null
   }
   
@@ -25,8 +23,6 @@ async function getSessionData() {
     cache: 'no-store',
   })
   
-  console.log('Settings API - Session validation response:', response.status)
-  
   if (!response.ok) {
     console.log('Settings API - Session validation failed')
     return null
@@ -34,9 +30,9 @@ async function getSessionData() {
   return response.json()
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const session = await getSessionData()
+    const session = await getSessionData(request)
     if (!session) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
@@ -80,7 +76,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const session = await getSessionData()
+    const session = await getSessionData(request)
     if (!session) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }

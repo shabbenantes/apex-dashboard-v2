@@ -29,34 +29,19 @@ export async function POST(request: Request) {
       }, { status: 401 })
     }
 
-    // Create response with cookies set via NextResponse
-    const response = NextResponse.json({ 
+    // Return all session data - client will store in localStorage
+    // Calculate expiry (30 days from now)
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+
+    return NextResponse.json({ 
       success: true,
-      businessName: data.businessName 
-    })
-
-    // Set session cookie - always secure on production (Render uses HTTPS)
-    response.cookies.set('apex_session', data.sessionId, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 30, // 30 days
-      path: '/',
-    })
-
-    // Also set a non-httpOnly cookie with business info for client-side
-    response.cookies.set('apex_business', JSON.stringify({
-      businessName: data.businessName,
+      sessionId: data.sessionId,
       email: data.email,
-    }), {
-      httpOnly: false,
-      secure: true,
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 30,
-      path: '/',
+      locationId: data.locationId,
+      businessName: data.businessName,
+      apiKey: data.apiKey,
+      expiresAt
     })
-
-    return response
   } catch (error) {
     console.error('Auth verify error:', error)
     return NextResponse.json({ error: 'Something went wrong' }, { status: 500 })

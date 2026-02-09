@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { ApexSession } from '@/lib/session'
 
 interface Conversation {
   id: string
@@ -22,10 +23,13 @@ export default function ConversationsPage() {
   useEffect(() => {
     async function fetchConversations() {
       try {
+        const token = ApexSession.getToken()
         const res = await fetch('/api/conversations', { 
-          credentials: 'include',
           cache: 'no-store',
-          headers: { 'Cache-Control': 'no-cache' },
+          headers: { 
+            'Cache-Control': 'no-cache',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
         })
         if (res.ok) {
           const data = await res.json()

@@ -1,19 +1,94 @@
-import { getSession } from '@/lib/auth'
-import { getDashboardStats, getConversations, formatRelativeTime } from '@/lib/ghl'
+'use client'
+
+import { useState, useEffect } from 'react'
+import { ApexSession } from '@/lib/session'
 import StatsCard from '@/components/StatsCard'
 
-export default async function DashboardPage() {
-  const session = await getSession()
-  
-  if (!session) {
-    return null // Layout will redirect
-  }
+interface Stats {
+  messagesThisWeek: number
+  avgResponseTime: string
+  leadsThisWeek: number
+  conversionRate: string
+}
 
-  // Fetch real data from GHL
-  const [stats, conversations] = await Promise.all([
-    getDashboardStats(session.locationId, session.apiKey),
-    getConversations(session.locationId, session.apiKey, 5),
-  ])
+interface Conversation {
+  id: string
+  name: string
+  lastMessage: string
+  time: string
+  unread: boolean
+  messageCount: number
+  direction: string
+}
+
+export default function DashboardPage() {
+  const [stats, setStats] = useState<Stats>({
+    messagesThisWeek: 0,
+    avgResponseTime: '< 1 min',
+    leadsThisWeek: 0,
+    conversionRate: '--'
+  })
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchData() {
+      const token = ApexSession.getToken()
+      if (!token) {
+        setLoading(false)
+        return
+      }
+
+      const headers = { 'Authorization': `Bearer ${token}` }
+
+      try {
+        // Fetch stats and conversations in parallel
+        const [statsRes, convosRes] = await Promise.all([
+          fetch('/api/stats', { headers, cache: 'no-store' }),
+          fetch('/api/conversations', { headers, cache: 'no-store' })
+        ])
+
+        if (statsRes.ok) {
+          const statsData = await statsRes.json()
+          setStats(statsData)
+        }
+
+        if (convosRes.ok) {
+          const convosData = await convosRes.json()
+          setConversations(convosData.conversations || [])
+        }
+
+        setError(null)
+      } catch (err) {
+        console.error('Failed to fetch dashboard data:', err)
+        setError('Failed to load dashboard data')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="max-w-6xl">
+        <div className="mb-8 animate-fade-in">
+          <h1 className="font-display text-3xl font-bold mb-2">Welcome back! 👋</h1>
+          <p className="text-gray-400">Loading your dashboard...</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="card animate-pulse">
+              <div className="h-4 bg-gray-700 rounded w-1/2 mb-4"></div>
+              <div className="h-8 bg-gray-700 rounded w-1/3"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-6xl">
@@ -26,6 +101,12 @@ export default async function DashboardPage() {
           Here's how your AI assistant is performing.
         </p>
       </div>
+
+      {error && (
+        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400">
+          {error}
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -99,20 +180,20 @@ export default async function DashboardPage() {
               >
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-apex-purple/30 to-apex-purple-light/30 flex items-center justify-center flex-shrink-0">
                   <span className="text-sm font-medium text-apex-purple">
-                    {(convo.contactName || 'UN').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                    {(convo.name || 'UN').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-0.5">
-                    <span className="font-medium text-sm">{convo.contactName || 'Unknown'}</span>
-                    <span className="text-xs text-gray-500">{formatRelativeTime(convo.lastMessageDate)}</span>
+                    <span className="font-medium text-sm">{convo.name || 'Unknown'}</span>
+                    <span className="text-xs text-gray-500">{convo.time}</span>
                   </div>
                   <p className="text-xs text-gray-500 truncate">
-                    {convo.lastMessageDirection === 'outbound' ? '↗️ ' : '↙️ '}
-                    {convo.lastMessageBody?.substring(0, 60) || 'No message'}
+                    {convo.direction === 'outbound' ? '↗️ ' : '↙️ '}
+                    {convo.lastMessage?.substring(0, 60) || 'No message'}
                   </p>
                 </div>
-                {convo.unreadCount > 0 && (
+                {convo.unread && (
                   <div className="w-2 h-2 bg-apex-purple rounded-full flex-shrink-0" />
                 )}
               </a>
