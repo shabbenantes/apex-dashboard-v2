@@ -51,9 +51,10 @@ export default function MobileNav({ businessName }: { businessName: string }) {
       )}
 
       {/* Mobile menu panel */}
-      <div className={`lg:hidden fixed top-16 left-0 right-0 bg-apex-card border-b border-apex-border z-50 transition-all duration-300 ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
+      {isOpen && (
+      <div className="lg:hidden fixed top-16 left-0 right-0 bg-[#0F0F1A] border-b border-apex-border z-50 shadow-xl animate-fade-in">
         {/* Business name */}
-        <div className="px-4 py-3 border-b border-apex-border">
+        <div className="px-4 py-3 border-b border-apex-border bg-[#0F0F1A]">
           <div className="text-xs text-gray-500 uppercase tracking-wider">Business</div>
           <div className="font-medium text-sm truncate">{businessName}</div>
         </div>
@@ -81,7 +82,7 @@ export default function MobileNav({ businessName }: { businessName: string }) {
         </nav>
 
         {/* Sign out */}
-        <div className="p-2 border-t border-apex-border">
+        <div className="p-2 border-t border-apex-border bg-[#0F0F1A]">
           <Link
             href="/api/auth/logout"
             className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:text-red-400 hover:bg-white/5"
@@ -91,6 +92,7 @@ export default function MobileNav({ businessName }: { businessName: string }) {
           </Link>
         </div>
       </div>
+      )}
     </>
   )
 }
