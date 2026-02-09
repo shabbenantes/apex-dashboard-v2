@@ -12,6 +12,7 @@ interface ConnectFacebookModalProps {
   onClose: () => void
   onVerify: () => void
   verifying?: boolean
+  error?: string | null
 }
 
 export default function ConnectFacebookModal({ 
@@ -20,7 +21,8 @@ export default function ConnectFacebookModal({
   credentials,
   onClose, 
   onVerify,
-  verifying = false 
+  verifying = false,
+  error = null
 }: ConnectFacebookModalProps) {
   const [step, setStep] = useState<'instructions' | 'verify'>('instructions')
   const [copiedPassword, setCopiedPassword] = useState(false)
@@ -149,14 +151,22 @@ export default function ConnectFacebookModal({
           <>
             {/* Verify Step */}
             <div className="text-center mb-6">
-              <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-apex-purple/20 flex items-center justify-center">
-                <svg className="w-10 h-10 text-apex-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+              <div className={`w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center ${error ? 'bg-red-500/20' : 'bg-apex-purple/20'}`}>
+                {error ? (
+                  <svg className="w-10 h-10 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                ) : (
+                  <svg className="w-10 h-10 text-apex-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                )}
               </div>
-              <h3 className="font-display text-xl font-semibold mb-2">Done connecting?</h3>
+              <h3 className="font-display text-xl font-semibold mb-2">
+                {error ? 'Not Connected Yet' : 'Done connecting?'}
+              </h3>
               <p className="text-gray-400">
-                Click below to verify your {platformName} connection
+                {error || `Click below to verify your ${platformName} connection`}
               </p>
             </div>
 

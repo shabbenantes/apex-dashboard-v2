@@ -30,6 +30,7 @@ export default function SetupChecklist({ onComplete }: SetupChecklistProps) {
   const [showFacebookModal, setShowFacebookModal] = useState(false)
   const [showInstagramModal, setShowInstagramModal] = useState(false)
   const [verifying, setVerifying] = useState<string | null>(null)
+  const [verifyError, setVerifyError] = useState<string | null>(null)
 
   useEffect(() => {
     fetchStatus()
@@ -60,6 +61,7 @@ export default function SetupChecklist({ onComplete }: SetupChecklistProps) {
 
   const verifyConnection = async (type: 'facebook' | 'instagram') => {
     setVerifying(type)
+    setVerifyError(null)
     const token = ApexSession.getToken()
     
     try {
@@ -68,15 +70,22 @@ export default function SetupChecklist({ onComplete }: SetupChecklistProps) {
         headers: { 'Authorization': `Bearer ${token}` },
       })
       
-      if (res.ok) {
+      const data = await res.json()
+      
+      if (data.connected) {
+        // Success! Close modal and refresh status
         await fetchStatus()
+        setShowFacebookModal(false)
+        setShowInstagramModal(false)
+      } else {
+        // Not connected yet - show error in modal
+        setVerifyError(data.message || `${type === 'facebook' ? 'Facebook' : 'Instagram'} connection not detected. Please complete all steps and try again.`)
       }
     } catch (err) {
       console.error(`Failed to verify ${type}:`, err)
+      setVerifyError('Verification failed. Please try again.')
     } finally {
       setVerifying(null)
-      setShowFacebookModal(false)
-      setShowInstagramModal(false)
     }
   }
 
@@ -226,9 +235,10 @@ export default function SetupChecklist({ onComplete }: SetupChecklistProps) {
           platform="facebook"
           portalUrl={status.ghlPortalUrl}
           credentials={status.ghlCredentials}
-          onClose={() => setShowFacebookModal(false)}
+          onClose={() => { setShowFacebookModal(false); setVerifyError(null); }}
           onVerify={() => verifyConnection('facebook')}
           verifying={verifying === 'facebook'}
+          error={verifyError}
         />
       )}
 
@@ -238,9 +248,10 @@ export default function SetupChecklist({ onComplete }: SetupChecklistProps) {
           platform="instagram"
           portalUrl={status.ghlPortalUrl}
           credentials={status.ghlCredentials}
-          onClose={() => setShowInstagramModal(false)}
+          onClose={() => { setShowInstagramModal(false); setVerifyError(null); }}
           onVerify={() => verifyConnection('instagram')}
           verifying={verifying === 'instagram'}
+          error={verifyError}
         />
       )}
     </>
