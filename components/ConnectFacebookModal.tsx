@@ -5,6 +5,10 @@ import { useState } from 'react'
 interface ConnectFacebookModalProps {
   platform: 'facebook' | 'instagram'
   portalUrl?: string
+  credentials?: {
+    email: string
+    password: string
+  }
   onClose: () => void
   onVerify: () => void
   verifying?: boolean
@@ -13,12 +17,15 @@ interface ConnectFacebookModalProps {
 export default function ConnectFacebookModal({ 
   platform, 
   portalUrl, 
+  credentials,
   onClose, 
   onVerify,
   verifying = false 
 }: ConnectFacebookModalProps) {
   const [step, setStep] = useState<'instructions' | 'verify'>('instructions')
   const [showPassword, setShowPassword] = useState(false)
+  const [copiedEmail, setCopiedEmail] = useState(false)
+  const [copiedPassword, setCopiedPassword] = useState(false)
 
   const isFacebook = platform === 'facebook'
   const platformName = isFacebook ? 'Facebook Messenger' : 'Instagram DMs'
@@ -27,6 +34,17 @@ export default function ConnectFacebookModal({
 
   const defaultPortalUrl = portalUrl || 'https://app.gohighlevel.com'
   const integrationUrl = `${defaultPortalUrl}/settings/integrations`
+
+  const copyToClipboard = async (text: string, type: 'email' | 'password') => {
+    await navigator.clipboard.writeText(text)
+    if (type === 'email') {
+      setCopiedEmail(true)
+      setTimeout(() => setCopiedEmail(false), 2000)
+    } else {
+      setCopiedPassword(true)
+      setTimeout(() => setCopiedPassword(false), 2000)
+    }
+  }
 
   const handleOpenPortal = () => {
     window.open(integrationUrl, '_blank')
@@ -66,40 +84,76 @@ export default function ConnectFacebookModal({
 
         {step === 'instructions' ? (
           <>
+            {/* Credentials Box */}
+            {credentials && (
+              <div className="bg-apex-purple/10 border border-apex-purple/30 rounded-xl p-4 mb-5">
+                <h3 className="font-medium mb-3 text-white flex items-center gap-2">
+                  <span>🔑</span> Your Login Credentials
+                </h3>
+                
+                {/* Email */}
+                <div className="mb-3">
+                  <label className="text-gray-400 text-xs uppercase tracking-wide">Email</label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <code className="flex-1 bg-black/30 px-3 py-2 rounded-lg text-white font-mono text-sm">
+                      {credentials.email}
+                    </code>
+                    <button
+                      onClick={() => copyToClipboard(credentials.email, 'email')}
+                      className="px-3 py-2 bg-apex-purple/20 hover:bg-apex-purple/30 rounded-lg text-apex-purple text-sm font-medium transition-colors"
+                    >
+                      {copiedEmail ? '✓ Copied' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Password */}
+                <div>
+                  <label className="text-gray-400 text-xs uppercase tracking-wide">Password</label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <code className="flex-1 bg-black/30 px-3 py-2 rounded-lg text-white font-mono text-sm">
+                      {showPassword ? credentials.password : '••••••••'}
+                    </code>
+                    <button
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 text-sm transition-colors"
+                    >
+                      {showPassword ? 'Hide' : 'Show'}
+                    </button>
+                    <button
+                      onClick={() => copyToClipboard(credentials.password, 'password')}
+                      className="px-3 py-2 bg-apex-purple/20 hover:bg-apex-purple/30 rounded-lg text-apex-purple text-sm font-medium transition-colors"
+                    >
+                      {copiedPassword ? '✓ Copied' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Instructions */}
-            <div className="bg-white/5 rounded-xl p-5 mb-6">
-              <h3 className="font-medium mb-4 text-white">Here's what to do:</h3>
-              <ol className="space-y-4">
+            <div className="bg-white/5 rounded-xl p-4 mb-5">
+              <h3 className="font-medium mb-3 text-white">Quick steps:</h3>
+              <ol className="space-y-3">
                 <li className="flex gap-3">
                   <span className="w-6 h-6 rounded-full bg-apex-purple/20 text-apex-purple text-sm font-bold flex items-center justify-center flex-shrink-0">1</span>
-                  <div>
-                    <p className="text-gray-300">Click the button below to open your business portal</p>
-                  </div>
+                  <p className="text-gray-300">Click <strong>"Open Portal"</strong> below</p>
                 </li>
                 <li className="flex gap-3">
                   <span className="w-6 h-6 rounded-full bg-apex-purple/20 text-apex-purple text-sm font-bold flex items-center justify-center flex-shrink-0">2</span>
-                  <div>
-                    <p className="text-gray-300">Log in with your email and password</p>
-                    <p className="text-gray-500 text-sm mt-1">(Check your welcome email for credentials)</p>
-                  </div>
+                  <p className="text-gray-300"><strong>Copy & paste</strong> your credentials above to log in</p>
                 </li>
                 <li className="flex gap-3">
                   <span className="w-6 h-6 rounded-full bg-apex-purple/20 text-apex-purple text-sm font-bold flex items-center justify-center flex-shrink-0">3</span>
-                  <div>
-                    <p className="text-gray-300">Find "{isFacebook ? 'Facebook' : 'Instagram'}" in the integrations list</p>
-                  </div>
+                  <p className="text-gray-300">Find <strong>"{isFacebook ? 'Facebook' : 'Instagram'}"</strong> and click <strong>"Connect"</strong></p>
                 </li>
                 <li className="flex gap-3">
                   <span className="w-6 h-6 rounded-full bg-apex-purple/20 text-apex-purple text-sm font-bold flex items-center justify-center flex-shrink-0">4</span>
-                  <div>
-                    <p className="text-gray-300">Click "Connect" and authorize with {isFacebook ? 'Facebook' : 'Instagram'}</p>
-                  </div>
+                  <p className="text-gray-300">Authorize with your {isFacebook ? 'Facebook' : 'Instagram'} account</p>
                 </li>
                 <li className="flex gap-3">
                   <span className="w-6 h-6 rounded-full bg-apex-purple/20 text-apex-purple text-sm font-bold flex items-center justify-center flex-shrink-0">5</span>
-                  <div>
-                    <p className="text-gray-300">Come back here and click "Verify Connection"</p>
-                  </div>
+                  <p className="text-gray-300">Come back here and click <strong>"Verify"</strong></p>
                 </li>
               </ol>
             </div>
@@ -109,7 +163,7 @@ export default function ConnectFacebookModal({
               onClick={handleOpenPortal}
               className={`w-full py-4 rounded-xl font-semibold text-white bg-gradient-to-r ${platformColor} hover:opacity-90 transition-opacity flex items-center justify-center gap-2`}
             >
-              Open Business Portal
+              Open Portal →
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
@@ -117,7 +171,7 @@ export default function ConnectFacebookModal({
 
             {/* Help text */}
             <p className="text-center text-gray-500 text-sm mt-4">
-              Don't have your login credentials?{' '}
+              Having trouble?{' '}
               <a href="mailto:support@getapexautomation.com" className="text-apex-purple hover:text-apex-purple-light">
                 Contact support
               </a>

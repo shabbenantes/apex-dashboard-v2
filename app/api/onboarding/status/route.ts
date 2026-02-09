@@ -56,6 +56,12 @@ export async function GET(request: NextRequest) {
       ? `https://app.gohighlevel.com/v2/location/${customer.ghlLocationId}`
       : 'https://app.gohighlevel.com'
 
+    // Get GHL credentials (email is the customer email, password is set during onboarding)
+    const ghlCredentials = customer.ghlCredentials || {
+      email: customer.email,
+      password: 'apex2024' // Default password set during account creation
+    }
+
     return NextResponse.json({
       completedAt: onboarding.completedAt || null,
       steps: {
@@ -66,6 +72,7 @@ export async function GET(request: NextRequest) {
         settingsReviewed: onboarding.settingsReviewed || settingsReviewed,
       },
       ghlPortalUrl,
+      ghlCredentials,
     })
   } catch (error) {
     console.error('Failed to get onboarding status:', error)

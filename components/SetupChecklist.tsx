@@ -14,6 +14,10 @@ interface OnboardingStatus {
     settingsReviewed: boolean
   }
   ghlPortalUrl?: string
+  ghlCredentials?: {
+    email: string
+    password: string
+  }
 }
 
 interface SetupChecklistProps {
@@ -221,6 +225,7 @@ export default function SetupChecklist({ onComplete }: SetupChecklistProps) {
         <ConnectFacebookModal
           platform="facebook"
           portalUrl={status.ghlPortalUrl}
+          credentials={status.ghlCredentials}
           onClose={() => setShowFacebookModal(false)}
           onVerify={() => verifyConnection('facebook')}
           verifying={verifying === 'facebook'}
@@ -232,6 +237,7 @@ export default function SetupChecklist({ onComplete }: SetupChecklistProps) {
         <ConnectFacebookModal
           platform="instagram"
           portalUrl={status.ghlPortalUrl}
+          credentials={status.ghlCredentials}
           onClose={() => setShowInstagramModal(false)}
           onVerify={() => verifyConnection('instagram')}
           verifying={verifying === 'instagram'}
