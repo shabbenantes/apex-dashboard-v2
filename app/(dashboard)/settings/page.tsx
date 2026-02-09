@@ -44,11 +44,20 @@ export default function SettingsPage() {
   useEffect(() => {
     async function fetchSettings() {
       try {
-        const res = await fetch('/api/settings', { credentials: 'same-origin' })
+        const res = await fetch('/api/settings', { 
+          credentials: 'include',
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache',
+          },
+        })
         if (res.ok) {
           const data = await res.json()
           setSettings({ ...defaultSettings, ...data })
+          setError(null)
         } else {
+          const errorData = await res.json().catch(() => ({}))
+          console.error('Settings fetch failed:', res.status, errorData)
           setError('Failed to load settings')
         }
       } catch (err) {
