@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { ApexSession } from '@/lib/session'
 import StatsCard from '@/components/StatsCard'
 import AddToHomeScreen from '@/components/AddToHomeScreen'
+import SetupChecklist from '@/components/SetupChecklist'
 
 interface Stats {
   messagesThisWeek: number
@@ -116,6 +117,9 @@ export default function DashboardPage() {
     <div className="max-w-6xl">
       {/* Add to Home Screen Prompt */}
       {showAddToHome && <AddToHomeScreen onDismiss={handleDismissAddToHome} />}
+
+      {/* Setup Checklist - shows only when setup incomplete */}
+      <SetupChecklist />
 
       {/* Header */}
       <div className="mb-8 animate-fade-in">
