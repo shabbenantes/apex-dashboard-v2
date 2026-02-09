@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const GHL_API_BASE = 'https://services.leadconnectorhq.com'
 const GHL_API_VERSION = '2021-07-28'
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://apex-dashboard-api-5r3u.onrender.com'
+const API_URL = process.env.DASHBOARD_API_URL || 'https://apex-dashboard-api-5r3u.onrender.com'
 
 export async function GET(
   request: NextRequest,
@@ -27,14 +27,24 @@ export async function GET(
     })
 
     if (!verifyRes.ok) {
+      const errorData = await verifyRes.json().catch(() => ({}))
+      console.error('Auth verify failed:', verifyRes.status, errorData)
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    const { customer } = await verifyRes.json()
+    const verifyData = await verifyRes.json()
+    const customer = verifyData.customer
+    
+    if (!customer) {
+      console.error('No customer in verify response:', verifyData)
+      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
+    }
+    
     const locationId = customer.ghlLocationId || customer.locationId
     const apiKey = customer.ghlApiKey || customer.apiKey
 
     if (!locationId || !apiKey) {
+      console.error('Missing GHL credentials:', { locationId, apiKey: !!apiKey })
       return NextResponse.json({ error: 'GHL not configured' }, { status: 400 })
     }
 
