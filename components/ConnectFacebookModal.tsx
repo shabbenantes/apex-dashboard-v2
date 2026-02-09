@@ -23,8 +23,6 @@ export default function ConnectFacebookModal({
   verifying = false 
 }: ConnectFacebookModalProps) {
   const [step, setStep] = useState<'instructions' | 'verify'>('instructions')
-  const [showPassword, setShowPassword] = useState(false)
-  const [copiedEmail, setCopiedEmail] = useState(false)
   const [copiedPassword, setCopiedPassword] = useState(false)
 
   const isFacebook = platform === 'facebook'
@@ -35,15 +33,10 @@ export default function ConnectFacebookModal({
   const defaultPortalUrl = portalUrl || 'https://app.gohighlevel.com'
   const integrationUrl = `${defaultPortalUrl}/settings/integrations`
 
-  const copyToClipboard = async (text: string, type: 'email' | 'password') => {
-    await navigator.clipboard.writeText(text)
-    if (type === 'email') {
-      setCopiedEmail(true)
-      setTimeout(() => setCopiedEmail(false), 2000)
-    } else {
-      setCopiedPassword(true)
-      setTimeout(() => setCopiedPassword(false), 2000)
-    }
+  const copyPassword = async (password: string) => {
+    await navigator.clipboard.writeText(password)
+    setCopiedPassword(true)
+    setTimeout(() => setCopiedPassword(false), 2000)
   }
 
   const handleOpenPortal = () => {
@@ -87,46 +80,21 @@ export default function ConnectFacebookModal({
             {/* Credentials Box */}
             {credentials && (
               <div className="bg-apex-purple/10 border border-apex-purple/30 rounded-xl p-4 mb-5">
-                <h3 className="font-medium mb-3 text-white flex items-center gap-2">
-                  <span>🔑</span> Your Login Credentials
-                </h3>
+                <p className="text-gray-300 mb-3">
+                  Log in with <strong className="text-white">your email</strong> (the one you signed up with) and this password:
+                </p>
                 
-                {/* Email */}
-                <div className="mb-3">
-                  <label className="text-gray-400 text-xs uppercase tracking-wide">Email</label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <code className="flex-1 bg-black/30 px-3 py-2 rounded-lg text-white font-mono text-sm">
-                      {credentials.email}
-                    </code>
-                    <button
-                      onClick={() => copyToClipboard(credentials.email, 'email')}
-                      className="px-3 py-2 bg-apex-purple/20 hover:bg-apex-purple/30 rounded-lg text-apex-purple text-sm font-medium transition-colors"
-                    >
-                      {copiedEmail ? '✓ Copied' : 'Copy'}
-                    </button>
-                  </div>
-                </div>
-                
-                {/* Password */}
-                <div>
-                  <label className="text-gray-400 text-xs uppercase tracking-wide">Password</label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <code className="flex-1 bg-black/30 px-3 py-2 rounded-lg text-white font-mono text-sm">
-                      {showPassword ? credentials.password : '••••••••'}
-                    </code>
-                    <button
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 text-sm transition-colors"
-                    >
-                      {showPassword ? 'Hide' : 'Show'}
-                    </button>
-                    <button
-                      onClick={() => copyToClipboard(credentials.password, 'password')}
-                      className="px-3 py-2 bg-apex-purple/20 hover:bg-apex-purple/30 rounded-lg text-apex-purple text-sm font-medium transition-colors"
-                    >
-                      {copiedPassword ? '✓ Copied' : 'Copy'}
-                    </button>
-                  </div>
+                {/* Password Only */}
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 bg-black/30 px-4 py-3 rounded-lg text-white font-mono text-lg tracking-wide">
+                    {credentials.password}
+                  </code>
+                  <button
+                    onClick={() => copyPassword(credentials.password)}
+                    className="px-4 py-3 bg-apex-purple hover:bg-apex-purple-light rounded-lg text-white font-medium transition-colors"
+                  >
+                    {copiedPassword ? '✓ Copied!' : 'Copy Password'}
+                  </button>
                 </div>
               </div>
             )}
@@ -134,26 +102,26 @@ export default function ConnectFacebookModal({
             {/* Instructions */}
             <div className="bg-white/5 rounded-xl p-4 mb-5">
               <h3 className="font-medium mb-3 text-white">Quick steps:</h3>
-              <ol className="space-y-3">
+              <ol className="space-y-2">
                 <li className="flex gap-3">
                   <span className="w-6 h-6 rounded-full bg-apex-purple/20 text-apex-purple text-sm font-bold flex items-center justify-center flex-shrink-0">1</span>
-                  <p className="text-gray-300">Click <strong>"Open Portal"</strong> below</p>
+                  <p className="text-gray-300"><strong>Copy the password</strong> above</p>
                 </li>
                 <li className="flex gap-3">
                   <span className="w-6 h-6 rounded-full bg-apex-purple/20 text-apex-purple text-sm font-bold flex items-center justify-center flex-shrink-0">2</span>
-                  <p className="text-gray-300"><strong>Copy & paste</strong> your credentials above to log in</p>
+                  <p className="text-gray-300">Click <strong>"Open Portal"</strong> below (opens new tab)</p>
                 </li>
                 <li className="flex gap-3">
                   <span className="w-6 h-6 rounded-full bg-apex-purple/20 text-apex-purple text-sm font-bold flex items-center justify-center flex-shrink-0">3</span>
-                  <p className="text-gray-300">Find <strong>"{isFacebook ? 'Facebook' : 'Instagram'}"</strong> and click <strong>"Connect"</strong></p>
+                  <p className="text-gray-300">Log in with your email + paste password</p>
                 </li>
                 <li className="flex gap-3">
                   <span className="w-6 h-6 rounded-full bg-apex-purple/20 text-apex-purple text-sm font-bold flex items-center justify-center flex-shrink-0">4</span>
-                  <p className="text-gray-300">Authorize with your {isFacebook ? 'Facebook' : 'Instagram'} account</p>
+                  <p className="text-gray-300">Find <strong>"{isFacebook ? 'Facebook' : 'Instagram'}"</strong> → click <strong>"Connect"</strong></p>
                 </li>
                 <li className="flex gap-3">
                   <span className="w-6 h-6 rounded-full bg-apex-purple/20 text-apex-purple text-sm font-bold flex items-center justify-center flex-shrink-0">5</span>
-                  <p className="text-gray-300">Come back here and click <strong>"Verify"</strong></p>
+                  <p className="text-gray-300">Come back to this tab and click <strong>"Verify"</strong></p>
                 </li>
               </ol>
             </div>
