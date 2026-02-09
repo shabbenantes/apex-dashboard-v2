@@ -43,9 +43,9 @@ export async function POST(request: Request) {
 
     const { token } = await tokenRes.json()
 
-    // Step 3: Build magic link
+    // Step 3: Build magic link - use callback route for proper cookie handling
     const dashboardUrl = process.env.NEXT_PUBLIC_DASHBOARD_URL || 'https://apex-dashboard-lt3v.onrender.com'
-    const magicLink = `${dashboardUrl}/auth/verify?token=${token}`
+    const magicLink = `${dashboardUrl}/api/auth/callback?token=${token}`
 
     // Step 4: Send email
     try {
