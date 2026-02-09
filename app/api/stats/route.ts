@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { getDashboardStats } from '@/lib/ghl'
 
+// Force dynamic rendering - never cache this route
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 const API_URL = process.env.DASHBOARD_API_URL || 'https://apex-dashboard-api-5r3u.onrender.com'
 
 async function getSessionData() {
@@ -14,6 +18,7 @@ async function getSessionData() {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ sessionId }),
+    cache: 'no-store',
   })
   
   if (!response.ok) return null

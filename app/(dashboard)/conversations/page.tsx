@@ -22,10 +22,15 @@ export default function ConversationsPage() {
   useEffect(() => {
     async function fetchConversations() {
       try {
-        const res = await fetch('/api/conversations', { credentials: 'same-origin' })
+        const res = await fetch('/api/conversations', { 
+          credentials: 'include',
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' },
+        })
         if (res.ok) {
           const data = await res.json()
           setConversations(data.conversations || [])
+          setError(null)
         } else {
           setError('Failed to load conversations')
         }
