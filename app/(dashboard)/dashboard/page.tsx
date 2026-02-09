@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { ApexSession } from '@/lib/session'
 import StatsCard from '@/components/StatsCard'
+import AddToHomeScreen from '@/components/AddToHomeScreen'
 
 interface Stats {
   messagesThisWeek: number
@@ -31,6 +32,27 @@ export default function DashboardPage() {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showAddToHome, setShowAddToHome] = useState(false)
+
+  // Check if we should show "Add to Home Screen" prompt
+  useEffect(() => {
+    const hasSeenPrompt = localStorage.getItem('apex_seen_add_to_home')
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+    
+    // Show prompt if: hasn't seen it, not already installed, and on mobile
+    if (!hasSeenPrompt && !isStandalone) {
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+      if (isMobile) {
+        // Delay showing the prompt a bit so they see the dashboard first
+        setTimeout(() => setShowAddToHome(true), 2000)
+      }
+    }
+  }, [])
+
+  const handleDismissAddToHome = () => {
+    setShowAddToHome(false)
+    localStorage.setItem('apex_seen_add_to_home', 'true')
+  }
 
   useEffect(() => {
     async function fetchData() {
@@ -92,6 +114,9 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-6xl">
+      {/* Add to Home Screen Prompt */}
+      {showAddToHome && <AddToHomeScreen onDismiss={handleDismissAddToHome} />}
+
       {/* Header */}
       <div className="mb-8 animate-fade-in">
         <h1 className="font-display text-3xl font-bold mb-2">
