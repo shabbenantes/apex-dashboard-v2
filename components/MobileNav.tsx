@@ -42,10 +42,10 @@ export default function MobileNav({ businessName }: { businessName: string }) {
         </button>
       </div>
 
-      {/* Mobile menu overlay */}
+      {/* Mobile menu overlay - covers screen below header */}
       {isOpen && (
         <div 
-          className="lg:hidden fixed inset-0 bg-black/50 z-40"
+          className="lg:hidden fixed top-16 left-0 right-0 bottom-0 bg-black/70 z-40"
           onClick={() => setIsOpen(false)}
         />
       )}
@@ -60,7 +60,7 @@ export default function MobileNav({ businessName }: { businessName: string }) {
         </div>
 
         {/* Nav items */}
-        <nav className="p-2">
+        <nav className="p-2 bg-[#0F0F1A]">
           {navItems.map((item) => {
             const isActive = pathname === item.href
             return (
