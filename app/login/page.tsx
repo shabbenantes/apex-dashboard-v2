@@ -24,6 +24,12 @@ export default function LoginPage() {
 
       if (res.ok) {
         setSent(true)
+        // TEMP: For testing, show the magic link if returned
+        if (data._debug_link) {
+          console.log('Magic link:', data._debug_link)
+          // Auto-redirect for testing
+          window.location.href = data._debug_link
+        }
       } else {
         setError(data.error || 'Something went wrong')
       }
