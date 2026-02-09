@@ -27,6 +27,24 @@ export async function GET() {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
+    // TODO: Re-enable n8n webhook when workflow is complete
+    // For now, return defaults with session data
+    return NextResponse.json({
+      businessName: session.businessName || 'Your Business',
+      businessType: 'service_appointments',
+      services: '',
+      serviceArea: '',
+      businessHours: '',
+      phone: '',
+      bookingLink: '',
+      tone: 'friendly',
+      specialInstructions: '',
+      businessKnowledge: '',
+      escalationName: '',
+      escalationEmail: session.email || '',
+    })
+
+    /* DISABLED - n8n webhook not ready
     // Fetch current settings from GHL via n8n
     const response = await fetch(N8N_SETTINGS_URL, {
       method: 'POST',
@@ -57,6 +75,7 @@ export async function GET() {
     }
 
     return NextResponse.json(await response.json())
+    */
   } catch (error) {
     console.error('Get settings error:', error)
     return NextResponse.json({ error: 'Failed to load settings' }, { status: 500 })
@@ -71,7 +90,13 @@ export async function POST(request: Request) {
     }
 
     const settings = await request.json()
+    
+    // TODO: Re-enable n8n webhook when workflow is complete
+    // For now, just acknowledge the save (settings won't persist until n8n is ready)
+    console.log('Settings save requested (n8n not ready):', { locationId: session.locationId, settings })
+    return NextResponse.json({ success: true, message: 'Settings received (persistence pending n8n setup)' })
 
+    /* DISABLED - n8n webhook not ready
     // Update settings in GHL via n8n
     const response = await fetch(N8N_SETTINGS_URL, {
       method: 'POST',
@@ -89,6 +114,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ success: true })
+    */
   } catch (error) {
     console.error('Save settings error:', error)
     return NextResponse.json({ error: 'Failed to save settings' }, { status: 500 })
