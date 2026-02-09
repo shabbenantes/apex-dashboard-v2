@@ -1,8 +1,80 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { ApexSession } from '@/lib/session'
+
+interface IntegrationStatus {
+  facebook: {
+    connected: boolean
+    pageName?: string
+  }
+  instagram: {
+    connected: boolean
+    handle?: string
+  }
+  ghlConnectUrl?: string
+}
+
 export default function ConnectPage() {
-  // Mock data - in production, this would check actual connection status
-  const connections = {
-    facebook: { connected: true, pageName: 'Melbourne Med Spa', lastSync: '2 minutes ago' },
-    instagram: { connected: true, handle: '@melbournemedpa', lastSync: '2 minutes ago' },
+  const [status, setStatus] = useState<IntegrationStatus>({
+    facebook: { connected: false },
+    instagram: { connected: false },
+  })
+  const [loading, setLoading] = useState(true)
+  const [checking, setChecking] = useState(false)
+
+  async function fetchStatus() {
+    try {
+      const token = ApexSession.getToken()
+      const res = await fetch('/api/integrations', {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        cache: 'no-store',
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setStatus(data)
+      }
+    } catch (err) {
+      console.error('Failed to fetch integration status:', err)
+    } finally {
+      setLoading(false)
+      setChecking(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchStatus()
+  }, [])
+
+  const handleConnect = () => {
+    if (status.ghlConnectUrl) {
+      window.open(status.ghlConnectUrl, '_blank')
+    }
+  }
+
+  const handleCheckStatus = () => {
+    setChecking(true)
+    fetchStatus()
+  }
+
+  if (loading) {
+    return (
+      <div className="max-w-2xl">
+        <div className="mb-8">
+          <h1 className="font-display text-3xl font-bold mb-2">Connections</h1>
+          <p className="text-gray-400">Loading connection status...</p>
+        </div>
+        <div className="card animate-pulse">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-gray-700 rounded-xl"></div>
+            <div className="flex-1">
+              <div className="h-5 bg-gray-700 rounded w-1/3 mb-2"></div>
+              <div className="h-4 bg-gray-700 rounded w-1/2"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -11,7 +83,7 @@ export default function ConnectPage() {
       <div className="mb-8 animate-fade-in">
         <h1 className="font-display text-3xl font-bold mb-2">Connections</h1>
         <p className="text-gray-400">
-          Manage your Facebook and Instagram connections.
+          Connect your Facebook and Instagram to enable AI responses.
         </p>
       </div>
 
@@ -26,35 +98,35 @@ export default function ConnectPage() {
           <div className="flex-1">
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-semibold text-lg">Facebook Messenger</h3>
-              {connections.facebook.connected ? (
+              {status.facebook.connected ? (
                 <span className="flex items-center gap-1.5 text-green-400 text-sm">
-                  <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+                  <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
                   Connected
                 </span>
               ) : (
-                <span className="flex items-center gap-1.5 text-gray-500 text-sm">
-                  <span className="w-2 h-2 bg-gray-500 rounded-full"></span>
+                <span className="flex items-center gap-1.5 text-yellow-400 text-sm">
+                  <span className="w-2 h-2 bg-yellow-400 rounded-full"></span>
                   Not connected
                 </span>
               )}
             </div>
-            {connections.facebook.connected ? (
-              <>
-                <p className="text-gray-300 mb-1">{connections.facebook.pageName}</p>
-                <p className="text-gray-500 text-sm">Last sync: {connections.facebook.lastSync}</p>
-              </>
+            {status.facebook.connected ? (
+              <p className="text-gray-300">
+                {status.facebook.pageName || 'Facebook Page connected'}
+              </p>
             ) : (
-              <p className="text-gray-500 mb-3">Connect your Facebook Page to enable AI responses.</p>
+              <p className="text-gray-500">
+                Connect your Facebook Page to enable AI responses to messages.
+              </p>
             )}
           </div>
         </div>
-        <div className="mt-4 pt-4 border-t border-apex-border flex justify-end">
-          {connections.facebook.connected ? (
-            <button className="text-gray-400 hover:text-red-400 text-sm">
-              Disconnect
-            </button>
-          ) : (
-            <button className="btn-primary text-sm py-2 px-4">
+        <div className="mt-4 pt-4 border-t border-apex-border flex justify-end gap-3">
+          {!status.facebook.connected && (
+            <button 
+              onClick={handleConnect}
+              className="btn-primary text-sm py-2 px-4"
+            >
               Connect Facebook
             </button>
           )}
@@ -72,39 +144,65 @@ export default function ConnectPage() {
           <div className="flex-1">
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-semibold text-lg">Instagram DMs</h3>
-              {connections.instagram.connected ? (
+              {status.instagram.connected ? (
                 <span className="flex items-center gap-1.5 text-green-400 text-sm">
-                  <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+                  <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
                   Connected
                 </span>
               ) : (
-                <span className="flex items-center gap-1.5 text-gray-500 text-sm">
-                  <span className="w-2 h-2 bg-gray-500 rounded-full"></span>
+                <span className="flex items-center gap-1.5 text-yellow-400 text-sm">
+                  <span className="w-2 h-2 bg-yellow-400 rounded-full"></span>
                   Not connected
                 </span>
               )}
             </div>
-            {connections.instagram.connected ? (
-              <>
-                <p className="text-gray-300 mb-1">{connections.instagram.handle}</p>
-                <p className="text-gray-500 text-sm">Last sync: {connections.instagram.lastSync}</p>
-              </>
+            {status.instagram.connected ? (
+              <p className="text-gray-300">
+                {status.instagram.handle || 'Instagram account connected'}
+              </p>
             ) : (
-              <p className="text-gray-500 mb-3">Connect your Instagram to enable AI responses to DMs.</p>
+              <p className="text-gray-500">
+                Connect your Instagram to enable AI responses to DMs.
+              </p>
             )}
           </div>
         </div>
-        <div className="mt-4 pt-4 border-t border-apex-border flex justify-end">
-          {connections.instagram.connected ? (
-            <button className="text-gray-400 hover:text-red-400 text-sm">
-              Disconnect
-            </button>
-          ) : (
-            <button className="btn-primary text-sm py-2 px-4">
+        <div className="mt-4 pt-4 border-t border-apex-border flex justify-end gap-3">
+          {!status.instagram.connected && (
+            <button 
+              onClick={handleConnect}
+              className="btn-primary text-sm py-2 px-4"
+            >
               Connect Instagram
             </button>
           )}
         </div>
+      </div>
+
+      {/* Check Status Button */}
+      <div className="flex justify-center mb-6">
+        <button
+          onClick={handleCheckStatus}
+          disabled={checking}
+          className="text-apex-purple hover:text-apex-purple-light text-sm font-medium flex items-center gap-2"
+        >
+          {checking ? (
+            <>
+              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Checking...
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Refresh connection status
+            </>
+          )}
+        </button>
       </div>
 
       {/* Help Section */}
@@ -112,9 +210,16 @@ export default function ConnectPage() {
         <div className="flex items-start gap-3">
           <span className="text-2xl">💡</span>
           <div>
-            <h3 className="font-semibold mb-1">Need help connecting?</h3>
-            <p className="text-gray-400 text-sm mb-3">
-              If you're having trouble connecting your Facebook or Instagram, we can help you through the process.
+            <h3 className="font-semibold mb-1">How to connect</h3>
+            <ol className="text-gray-400 text-sm space-y-2 list-decimal list-inside mb-3">
+              <li>Click "Connect Facebook" or "Connect Instagram" above</li>
+              <li>Log in with your credentials in the new window</li>
+              <li>Select your Facebook Page and/or Instagram account</li>
+              <li>Authorize the connection</li>
+              <li>Come back here and click "Refresh connection status"</li>
+            </ol>
+            <p className="text-gray-500 text-sm mb-3">
+              Need help? We can walk you through it.
             </p>
             <a href="mailto:support@getapexautomation.com" className="text-apex-purple hover:text-apex-purple-light text-sm font-medium">
               Contact Support →

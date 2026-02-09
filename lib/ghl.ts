@@ -147,6 +147,99 @@ export async function getDashboardStats(locationId: string, apiKey: string): Pro
   }
 }
 
+// Get integration/connection status
+export interface IntegrationStatus {
+  facebook: {
+    connected: boolean
+    pageName?: string
+    pageId?: string
+  }
+  instagram: {
+    connected: boolean
+    handle?: string
+    accountId?: string
+  }
+}
+
+export async function getIntegrationStatus(locationId: string, apiKey: string): Promise<IntegrationStatus> {
+  try {
+    // Check for Facebook/Instagram by looking at conversation types
+    // If there are FB/IG conversations, the integration is connected
+    const response = await fetch(
+      `${GHL_API_BASE}/conversations/search?locationId=${locationId}&limit=50`,
+      {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Version': GHL_API_VERSION,
+        },
+      }
+    )
+
+    if (!response.ok) {
+      return {
+        facebook: { connected: false },
+        instagram: { connected: false },
+      }
+    }
+
+    const data = await response.json()
+    const conversations = data.conversations || []
+    
+    // Check for Facebook conversations
+    const fbConvo = conversations.find((c: any) => 
+      c.type === 'TYPE_FACEBOOK' || c.type === 'FB'
+    )
+    
+    // Check for Instagram conversations
+    const igConvo = conversations.find((c: any) => 
+      c.type === 'TYPE_INSTAGRAM' || c.type === 'IG'
+    )
+
+    // Also try to get location info which might have FB page details
+    let fbPageName = 'Connected'
+    let igHandle = 'Connected'
+    
+    try {
+      const locationRes = await fetch(
+        `${GHL_API_BASE}/locations/${locationId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Version': GHL_API_VERSION,
+          },
+        }
+      )
+      if (locationRes.ok) {
+        const locData = await locationRes.json()
+        // Try to extract social info from location data
+        if (locData.location?.social?.facebookUrl) {
+          const fbUrl = locData.location.social.facebookUrl
+          fbPageName = fbUrl.split('/').pop() || 'Connected'
+        }
+      }
+    } catch (e) {
+      // Ignore - we'll use defaults
+    }
+
+    return {
+      facebook: {
+        connected: !!fbConvo,
+        pageName: fbConvo ? fbPageName : undefined,
+      },
+      instagram: {
+        connected: !!igConvo,
+        handle: igConvo ? igHandle : undefined,
+      },
+    }
+  } catch (error) {
+    console.error('Failed to get integration status:', error)
+    return {
+      facebook: { connected: false },
+      instagram: { connected: false },
+    }
+  }
+}
+
 // Helper to format relative time
 export function formatRelativeTime(timestamp: number): string {
   const now = Date.now()
