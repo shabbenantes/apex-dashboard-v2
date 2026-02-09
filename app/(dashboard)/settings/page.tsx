@@ -1,21 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
-// Mock data - in production, this would come from server component
-const initialSettings = {
-  businessName: 'Melbourne Med Spa',
+const defaultSettings = {
+  businessName: '',
   businessType: 'service_appointments',
-  services: 'Botox, fillers, facials, laser treatments, chemical peels',
-  serviceArea: 'Melbourne FL, serving all of Brevard County',
-  businessHours: 'Mon-Fri 9am-6pm, Sat 10am-4pm, Closed Sunday',
-  phone: '(321) 555-1234',
-  bookingLink: 'https://calendly.com/melbournemedpa',
+  services: '',
+  serviceArea: '',
+  businessHours: '',
+  phone: '',
+  bookingLink: '',
   tone: 'friendly',
-  specialInstructions: 'Always mention our new client special (20% off first visit)',
-  businessKnowledge: 'First-time clients get 20% off\nWe require 24hr cancellation notice\nMost popular: hydrafacial ($150)\nFree parking in back lot',
-  escalationName: 'Sarah',
-  escalationEmail: 'sarah@melbournemedpa.com',
+  specialInstructions: '',
+  businessKnowledge: '',
+  escalationName: '',
+  escalationEmail: '',
 }
 
 const toneOptions = [
@@ -35,9 +34,32 @@ const businessTypes = [
 ]
 
 export default function SettingsPage() {
-  const [settings, setSettings] = useState(initialSettings)
+  const [settings, setSettings] = useState(defaultSettings)
+  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Fetch settings on mount
+  useEffect(() => {
+    async function fetchSettings() {
+      try {
+        const res = await fetch('/api/settings')
+        if (res.ok) {
+          const data = await res.json()
+          setSettings({ ...defaultSettings, ...data })
+        } else {
+          setError('Failed to load settings')
+        }
+      } catch (err) {
+        console.error('Failed to fetch settings:', err)
+        setError('Failed to load settings')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchSettings()
+  }, [])
 
   const handleChange = (field: string, value: string) => {
     setSettings(prev => ({ ...prev, [field]: value }))
@@ -46,6 +68,7 @@ export default function SettingsPage() {
 
   const handleSave = async () => {
     setSaving(true)
+    setError(null)
     try {
       const res = await fetch('/api/settings', {
         method: 'POST',
@@ -55,12 +78,32 @@ export default function SettingsPage() {
       if (res.ok) {
         setSaved(true)
         setTimeout(() => setSaved(false), 3000)
+      } else {
+        setError('Failed to save settings')
       }
-    } catch (error) {
-      console.error('Failed to save:', error)
+    } catch (err) {
+      console.error('Failed to save:', err)
+      setError('Failed to save settings')
     } finally {
       setSaving(false)
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="max-w-3xl">
+        <div className="mb-8 animate-fade-in">
+          <h1 className="font-display text-3xl font-bold mb-2">Settings</h1>
+          <p className="text-gray-400">Loading your settings...</p>
+        </div>
+        <div className="card animate-pulse">
+          <div className="h-4 bg-gray-700 rounded w-1/4 mb-4"></div>
+          <div className="h-10 bg-gray-700 rounded mb-4"></div>
+          <div className="h-4 bg-gray-700 rounded w-1/3 mb-4"></div>
+          <div className="h-10 bg-gray-700 rounded"></div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -72,6 +115,12 @@ export default function SettingsPage() {
           Configure your AI assistant's behavior and knowledge.
         </p>
       </div>
+
+      {error && (
+        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400">
+          {error}
+        </div>
+      )}
 
       {/* Business Info Section */}
       <section className="card mb-6 animate-fade-in delay-1">
@@ -87,6 +136,7 @@ export default function SettingsPage() {
               value={settings.businessName}
               onChange={(e) => handleChange('businessName', e.target.value)}
               className="input"
+              placeholder="Your Business Name"
             />
           </div>
 
