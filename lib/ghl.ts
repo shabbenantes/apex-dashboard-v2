@@ -64,7 +64,9 @@ export async function getConversations(locationId: string, apiKey: string, limit
       lastMessageDate: c.lastMessageDate,
       lastMessageDirection: c.lastMessageDirection,
       unreadCount: c.unreadCount || 0,
-      type: getConversationType(c.type),
+      // Use lastMessageType for the channel badge (shows actual channel used)
+      // Fall back to type if lastMessageType isn't available
+      type: formatChannelType(c.lastMessageType || c.type),
     }))
   } catch (error) {
     console.error('Failed to fetch conversations:', error)
@@ -72,23 +74,39 @@ export async function getConversations(locationId: string, apiKey: string, limit
   }
 }
 
-// Map GHL conversation type numbers to readable strings
-function getConversationType(type: number | string): string {
-  if (typeof type === 'string') return type
-  
-  const typeMap: Record<number, string> = {
-    1: 'TYPE_FACEBOOK',
-    2: 'TYPE_INSTAGRAM', 
-    3: 'TYPE_SMS',
-    4: 'TYPE_EMAIL',
-    5: 'TYPE_CALL',
-    6: 'TYPE_LIVE_CHAT',
-    7: 'TYPE_GOOGLE',
-    11: 'TYPE_FACEBOOK', // FB Messenger
-    12: 'TYPE_INSTAGRAM', // IG DM
+// Map GHL type strings to clean display names
+function formatChannelType(type: number | string): string {
+  if (typeof type === 'number') {
+    const numMap: Record<number, string> = {
+      1: 'FACEBOOK',
+      2: 'INSTAGRAM', 
+      3: 'SMS',
+      4: 'EMAIL',
+      5: 'CALL',
+      6: 'LIVE_CHAT',
+      7: 'GOOGLE',
+      11: 'FACEBOOK',
+      12: 'INSTAGRAM',
+    }
+    return numMap[type] || 'SMS'
   }
   
-  return typeMap[type] || 'TYPE_SMS'
+  // Clean up GHL's TYPE_ prefix for display
+  const typeStr = String(type).toUpperCase()
+  const cleanMap: Record<string, string> = {
+    'TYPE_FACEBOOK': 'FACEBOOK',
+    'TYPE_INSTAGRAM': 'INSTAGRAM',
+    'TYPE_SMS': 'SMS',
+    'TYPE_EMAIL': 'EMAIL',
+    'TYPE_CALL': 'CALL',
+    'TYPE_PHONE': 'PHONE',
+    'TYPE_LIVE_CHAT': 'LIVE_CHAT',
+    'TYPE_GOOGLE': 'GOOGLE',
+    'FB': 'FACEBOOK',
+    'IG': 'INSTAGRAM',
+  }
+  
+  return cleanMap[typeStr] || typeStr.replace('TYPE_', '')
 }
 
 export async function getContacts(locationId: string, apiKey: string, limit = 20): Promise<Contact[]> {
