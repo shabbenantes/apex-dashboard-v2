@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
 
 // This route handles the magic link callback
-// It verifies the token, sets cookies, and returns an HTML page that redirects
-// This approach is more reliable for cookie handling across different browsers
+// Sets cookies via HTTP headers (most reliable) with JavaScript backup
 
 export const dynamic = 'force-dynamic'
 
@@ -33,13 +32,14 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${DASHBOARD_URL}/login?error=invalid_token`)
     }
 
-    // Return HTML page that sets cookies via JavaScript
-    // This is more reliable across different browsers than HTTP Set-Cookie
-    const businessData = encodeURIComponent(JSON.stringify({
+    // Cookie settings
+    const maxAge = 60 * 60 * 24 * 30 // 30 days
+    const businessData = JSON.stringify({
       businessName: data.businessName,
       email: data.email,
-    }))
+    })
     
+    // Build response with both HTTP headers AND JavaScript cookie setting
     const html = `
 <!DOCTYPE html>
 <html>
@@ -58,9 +58,7 @@ export async function GET(request: Request) {
       min-height: 100vh;
       margin: 0;
     }
-    .container {
-      text-align: center;
-    }
+    .container { text-align: center; }
     .spinner {
       width: 40px;
       height: 40px;
@@ -70,9 +68,7 @@ export async function GET(request: Request) {
       animation: spin 1s linear infinite;
       margin: 0 auto 16px;
     }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -81,31 +77,48 @@ export async function GET(request: Request) {
     <p>Signing you in...</p>
   </div>
   <script>
-    // Set cookies via JavaScript for better browser compatibility
-    var maxAge = 60 * 60 * 24 * 30; // 30 days in seconds
-    var expires = new Date(Date.now() + maxAge * 1000).toUTCString();
-    
-    // Session cookie (for API auth)
-    document.cookie = 'apex_session=${data.sessionId}; path=/; expires=' + expires + '; SameSite=Lax; Secure';
-    
-    // Business info cookie (for display)
-    document.cookie = 'apex_business=${businessData}; path=/; expires=' + expires + '; SameSite=Lax; Secure';
-    
-    // Redirect to dashboard
+    // Backup: also set cookies via JavaScript in case HTTP headers didn't work
+    (function() {
+      var maxAge = ${maxAge};
+      var expires = new Date(Date.now() + maxAge * 1000).toUTCString();
+      document.cookie = 'apex_session=${data.sessionId}; path=/; expires=' + expires + '; SameSite=Lax';
+      document.cookie = 'apex_business=${encodeURIComponent(businessData)}; path=/; expires=' + expires + '; SameSite=Lax';
+    })();
+    // Redirect after a brief pause to ensure cookies are set
     setTimeout(function() {
-      window.location.href = '${DASHBOARD_URL}/dashboard';
-    }, 100);
+      window.location.replace('/dashboard');
+    }, 200);
   </script>
 </body>
 </html>
 `
 
-    return new NextResponse(html, {
+    const response = new NextResponse(html, {
       status: 200,
       headers: {
         'Content-Type': 'text/html',
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
       },
     })
+    
+    // Set cookies via HTTP headers (primary method - most reliable)
+    response.cookies.set('apex_session', data.sessionId, {
+      path: '/',
+      maxAge: maxAge,
+      httpOnly: false, // Allow JS access for debugging
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+    })
+    
+    response.cookies.set('apex_business', businessData, {
+      path: '/',
+      maxAge: maxAge,
+      httpOnly: false,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+    })
+
+    return response
   } catch (error) {
     console.error('Auth callback error:', error)
     return NextResponse.redirect(`${DASHBOARD_URL}/login?error=server_error`)

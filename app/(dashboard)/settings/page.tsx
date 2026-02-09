@@ -83,7 +83,8 @@ export default function SettingsPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings),
-        credentials: 'same-origin',
+        credentials: 'include',
+        cache: 'no-store',
       })
       if (res.ok) {
         setSaved(true)
