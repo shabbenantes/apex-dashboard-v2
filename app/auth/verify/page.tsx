@@ -1,117 +1,91 @@
-'use client'
+import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 
-import { Suspense, useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+const API_URL = process.env.DASHBOARD_API_URL || 'https://apex-dashboard-api-5r3u.onrender.com'
 
-function VerifyContent() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying')
-  const [error, setError] = useState('')
+interface Props {
+  searchParams: Promise<{ token?: string }>
+}
 
-  useEffect(() => {
-    const token = searchParams.get('token')
-    
-    if (!token) {
-      setStatus('error')
-      setError('No token provided')
-      return
-    }
+export default async function VerifyPage({ searchParams }: Props) {
+  const params = await searchParams
+  const token = params.token
 
-    // Verify the token
-    fetch('/api/auth/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token }),
-      credentials: 'include',
-    })
-      .then(async (res) => {
-        const data = await res.json()
-        if (res.ok) {
-          setStatus('success')
-          // Use full page navigation to ensure cookies are processed
-          setTimeout(() => {
-            window.location.href = '/dashboard'
-          }, 1500)
-        } else {
-          setStatus('error')
-          setError(data.error || 'Invalid or expired link')
-        }
-      })
-      .catch(() => {
-        setStatus('error')
-        setError('Failed to verify')
-      })
-  }, [searchParams, router])
-
-  return (
-    <div className="card text-center max-w-md w-full">
-      {status === 'verifying' && (
-        <>
-          <div className="w-16 h-16 bg-apex-purple/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="animate-spin h-8 w-8 text-apex-purple" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-            </svg>
-          </div>
-          <h2 className="text-xl font-semibold mb-2">Verifying...</h2>
-          <p className="text-gray-400">Please wait while we sign you in.</p>
-        </>
-      )}
-
-      {status === 'success' && (
-        <>
-          <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <h2 className="text-xl font-semibold mb-2">You're signed in!</h2>
-          <p className="text-gray-400">Redirecting to your dashboard...</p>
-        </>
-      )}
-
-      {status === 'error' && (
-        <>
+  if (!token) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="card text-center max-w-md w-full">
           <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </div>
-          <h2 className="text-xl font-semibold mb-2">Something went wrong</h2>
-          <p className="text-gray-400 mb-4">{error}</p>
-          <button
-            onClick={() => router.push('/login')}
-            className="btn-primary"
-          >
-            Try again
-          </button>
-        </>
-      )}
-    </div>
-  )
-}
-
-function LoadingFallback() {
-  return (
-    <div className="card text-center max-w-md w-full">
-      <div className="w-16 h-16 bg-apex-purple/20 rounded-full flex items-center justify-center mx-auto mb-4">
-        <svg className="animate-spin h-8 w-8 text-apex-purple" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-        </svg>
+          <h2 className="text-xl font-semibold mb-2">Invalid Link</h2>
+          <p className="text-gray-400 mb-4">No token provided</p>
+          <a href="/login" className="btn-primary inline-block">Try again</a>
+        </div>
       </div>
-      <h2 className="text-xl font-semibold mb-2">Loading...</h2>
-    </div>
-  )
-}
+    )
+  }
 
-export default function VerifyPage() {
+  // Verify token with the API
+  let verifyError = ''
+  try {
+    const response = await fetch(`${API_URL}/tokens/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+      cache: 'no-store',
+    })
+
+    const data = await response.json()
+
+    if (!response.ok || data.error) {
+      verifyError = data.error || 'Invalid or expired link'
+    } else {
+      // Set cookies on the server side
+      const cookieStore = await cookies()
+      
+      cookieStore.set('apex_session', data.sessionId, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 30, // 30 days
+        path: '/',
+      })
+
+      cookieStore.set('apex_business', JSON.stringify({
+        businessName: data.businessName,
+        email: data.email,
+      }), {
+        httpOnly: false,
+        secure: true,
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 30,
+        path: '/',
+      })
+
+      // Redirect to dashboard
+      redirect('/dashboard')
+    }
+  } catch (error) {
+    console.error('Verify error:', error)
+    verifyError = 'Something went wrong'
+  }
+
+  // Show error if verification failed
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
-      <Suspense fallback={<LoadingFallback />}>
-        <VerifyContent />
-      </Suspense>
+      <div className="card text-center max-w-md w-full">
+        <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </div>
+        <h2 className="text-xl font-semibold mb-2">Something went wrong</h2>
+        <p className="text-gray-400 mb-4">{verifyError}</p>
+        <a href="/login" className="btn-primary inline-block">Try again</a>
+      </div>
     </div>
   )
 }
