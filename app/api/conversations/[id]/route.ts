@@ -82,25 +82,39 @@ export async function GET(
     )
 
     let messages: any[] = []
+    let contactName = 'Unknown'
+    
     if (messagesRes.ok) {
       const messagesData = await messagesRes.json()
-      messages = (messagesData.messages || []).map((m: any) => ({
+      // GHL returns { messages: { messages: [...] } }
+      const messagesList = messagesData.messages?.messages || messagesData.messages || []
+      
+      messages = messagesList.map((m: any) => ({
         id: m.id,
         body: m.body || m.message || '',
         direction: m.direction,
-        dateAdded: m.dateAdded,
+        dateAdded: new Date(m.dateAdded).getTime(),
         type: m.type || m.messageType,
       }))
+      
       // Sort by date, oldest first
       messages.sort((a, b) => a.dateAdded - b.dateAdded)
+      
+      // Get contact name from inbound messages
+      const inboundMsg = messagesList.find((m: any) => m.direction === 'inbound')
+      if (inboundMsg?.from) {
+        contactName = inboundMsg.from
+      } else if (messagesList[0]?.to) {
+        contactName = messagesList[0].to
+      }
     }
 
     return NextResponse.json({
       id: convo.id,
-      contactName: convo.contactName || convo.fullName || 'Unknown',
+      contactName: convo.contactName || convo.fullName || contactName,
       contactEmail: convo.email,
       contactPhone: convo.phone,
-      type: convo.type || 'PHONE',
+      type: convo.type === 1 ? 'TYPE_FACEBOOK' : (convo.type || 'PHONE'),
       messages,
     })
   } catch (error) {
