@@ -44,7 +44,7 @@ export default function SettingsPage() {
   useEffect(() => {
     async function fetchSettings() {
       try {
-        const res = await fetch('/api/settings')
+        const res = await fetch('/api/settings', { credentials: 'same-origin' })
         if (res.ok) {
           const data = await res.json()
           setSettings({ ...defaultSettings, ...data })
@@ -74,6 +74,7 @@ export default function SettingsPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings),
+        credentials: 'same-origin',
       })
       if (res.ok) {
         setSaved(true)
