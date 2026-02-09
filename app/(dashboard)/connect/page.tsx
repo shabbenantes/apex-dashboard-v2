@@ -1,18 +1,145 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ApexSession } from '@/lib/session'
+import { ApexSession, SessionData } from '@/lib/session'
 
 interface IntegrationStatus {
-  facebook: {
-    connected: boolean
-    pageName?: string
-  }
-  instagram: {
-    connected: boolean
-    handle?: string
-  }
+  facebook: { connected: boolean; pageName?: string }
+  instagram: { connected: boolean; handle?: string }
   ghlConnectUrl?: string
+}
+
+function ConnectModal({ 
+  platform, 
+  ghlUrl, 
+  userEmail, 
+  onClose, 
+  onDone 
+}: { 
+  platform: 'facebook' | 'instagram'
+  ghlUrl: string
+  userEmail: string
+  onClose: () => void
+  onDone: () => void
+}) {
+  const [step, setStep] = useState(1)
+  const [opened, setOpened] = useState(false)
+  const platformName = platform === 'facebook' ? 'Facebook' : 'Instagram'
+
+  const openGHL = () => {
+    window.open(ghlUrl, '_blank')
+    setOpened(true)
+    setStep(2)
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-apex-card border border-apex-border rounded-2xl max-w-lg w-full">
+        {/* Header */}
+        <div className="p-6 border-b border-apex-border flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-display font-bold">Connect {platformName}</h2>
+            <p className="text-gray-400 text-sm mt-1">Follow these steps to connect your {platformName}</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-white p-1">
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6">
+          {step === 1 && (
+            <div className="space-y-6">
+              <div className="bg-apex-purple/10 border border-apex-purple/20 rounded-xl p-4">
+                <p className="text-sm text-gray-300">
+                  <span className="text-apex-purple font-medium">Your login email:</span> {userEmail}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Use this email when logging in
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-start gap-4">
+                  <div className="w-8 h-8 bg-apex-purple/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-sm font-bold text-apex-purple">1</span>
+                  </div>
+                  <div>
+                    <p className="font-medium">Click the button below to open the connection page</p>
+                    <p className="text-gray-400 text-sm">A new window will open</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="w-8 h-8 bg-gray-700 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-sm font-bold text-gray-400">2</span>
+                  </div>
+                  <div>
+                    <p className="text-gray-400">Log in with the email above</p>
+                    <p className="text-gray-500 text-sm">Check your email for a magic link</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="w-8 h-8 bg-gray-700 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-sm font-bold text-gray-400">3</span>
+                  </div>
+                  <div>
+                    <p className="text-gray-400">Click "{platformName}" and authorize</p>
+                    <p className="text-gray-500 text-sm">Select your {platformName} page/account</p>
+                  </div>
+                </div>
+              </div>
+
+              <button onClick={openGHL} className="btn-primary w-full">
+                Open Connection Page →
+              </button>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="space-y-6">
+              <div className="text-center py-4">
+                <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold mb-2">Connection page opened!</h3>
+                <p className="text-gray-400 text-sm">
+                  Complete the steps in the other window, then come back here.
+                </p>
+              </div>
+
+              <div className="bg-gray-800/50 rounded-xl p-4 space-y-3">
+                <p className="text-sm font-medium">Quick reminder:</p>
+                <ol className="text-sm text-gray-400 space-y-2 list-decimal list-inside">
+                  <li>Log in with <span className="text-white">{userEmail}</span></li>
+                  <li>Find "{platformName}" in the integrations list</li>
+                  <li>Click Connect and authorize access</li>
+                  <li>Come back here when done</li>
+                </ol>
+              </div>
+
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => window.open(ghlUrl, '_blank')} 
+                  className="flex-1 py-3 px-4 rounded-xl border border-apex-border text-gray-300 hover:bg-white/5"
+                >
+                  Reopen Page
+                </button>
+                <button onClick={onDone} className="btn-primary flex-1">
+                  I'm Done
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default function ConnectPage() {
@@ -22,6 +149,8 @@ export default function ConnectPage() {
   })
   const [loading, setLoading] = useState(true)
   const [checking, setChecking] = useState(false)
+  const [showModal, setShowModal] = useState<'facebook' | 'instagram' | null>(null)
+  const [session, setSession] = useState<SessionData | null>(null)
 
   async function fetchStatus() {
     try {
@@ -43,16 +172,12 @@ export default function ConnectPage() {
   }
 
   useEffect(() => {
+    setSession(ApexSession.get())
     fetchStatus()
   }, [])
 
-  const handleConnect = () => {
-    if (status.ghlConnectUrl) {
-      window.open(status.ghlConnectUrl, '_blank')
-    }
-  }
-
-  const handleCheckStatus = () => {
+  const handleConnectDone = () => {
+    setShowModal(null)
     setChecking(true)
     fetchStatus()
   }
@@ -62,7 +187,7 @@ export default function ConnectPage() {
       <div className="max-w-2xl">
         <div className="mb-8">
           <h1 className="font-display text-3xl font-bold mb-2">Connections</h1>
-          <p className="text-gray-400">Loading connection status...</p>
+          <p className="text-gray-400">Loading...</p>
         </div>
         <div className="card animate-pulse">
           <div className="flex items-center gap-4">
@@ -79,15 +204,26 @@ export default function ConnectPage() {
 
   return (
     <div className="max-w-2xl">
+      {/* Modal */}
+      {showModal && status.ghlConnectUrl && session && (
+        <ConnectModal
+          platform={showModal}
+          ghlUrl={status.ghlConnectUrl}
+          userEmail={session.email}
+          onClose={() => setShowModal(null)}
+          onDone={handleConnectDone}
+        />
+      )}
+
       {/* Header */}
       <div className="mb-8 animate-fade-in">
         <h1 className="font-display text-3xl font-bold mb-2">Connections</h1>
         <p className="text-gray-400">
-          Connect your Facebook and Instagram to enable AI responses.
+          Connect your social accounts to enable AI responses.
         </p>
       </div>
 
-      {/* Facebook Connection */}
+      {/* Facebook */}
       <div className="card mb-6 animate-fade-in delay-1">
         <div className="flex items-start gap-4">
           <div className="w-14 h-14 bg-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -110,30 +246,23 @@ export default function ConnectPage() {
                 </span>
               )}
             </div>
-            {status.facebook.connected ? (
-              <p className="text-gray-300">
-                {status.facebook.pageName || 'Facebook Page connected'}
-              </p>
-            ) : (
-              <p className="text-gray-500">
-                Connect your Facebook Page to enable AI responses to messages.
-              </p>
-            )}
+            <p className="text-gray-400 text-sm">
+              {status.facebook.connected 
+                ? status.facebook.pageName || 'Your Facebook Page is connected'
+                : 'Connect to respond to Facebook messages automatically'}
+            </p>
           </div>
         </div>
-        <div className="mt-4 pt-4 border-t border-apex-border flex justify-end gap-3">
-          {!status.facebook.connected && (
-            <button 
-              onClick={handleConnect}
-              className="btn-primary text-sm py-2 px-4"
-            >
+        {!status.facebook.connected && (
+          <div className="mt-4 pt-4 border-t border-apex-border">
+            <button onClick={() => setShowModal('facebook')} className="btn-primary text-sm py-2 px-4">
               Connect Facebook
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* Instagram Connection */}
+      {/* Instagram */}
       <div className="card mb-6 animate-fade-in delay-2">
         <div className="flex items-start gap-4">
           <div className="w-14 h-14 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -156,33 +285,26 @@ export default function ConnectPage() {
                 </span>
               )}
             </div>
-            {status.instagram.connected ? (
-              <p className="text-gray-300">
-                {status.instagram.handle || 'Instagram account connected'}
-              </p>
-            ) : (
-              <p className="text-gray-500">
-                Connect your Instagram to enable AI responses to DMs.
-              </p>
-            )}
+            <p className="text-gray-400 text-sm">
+              {status.instagram.connected 
+                ? status.instagram.handle || 'Your Instagram is connected'
+                : 'Connect to respond to Instagram DMs automatically'}
+            </p>
           </div>
         </div>
-        <div className="mt-4 pt-4 border-t border-apex-border flex justify-end gap-3">
-          {!status.instagram.connected && (
-            <button 
-              onClick={handleConnect}
-              className="btn-primary text-sm py-2 px-4"
-            >
+        {!status.instagram.connected && (
+          <div className="mt-4 pt-4 border-t border-apex-border">
+            <button onClick={() => setShowModal('instagram')} className="btn-primary text-sm py-2 px-4">
               Connect Instagram
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* Check Status Button */}
+      {/* Refresh */}
       <div className="flex justify-center mb-6">
         <button
-          onClick={handleCheckStatus}
+          onClick={() => { setChecking(true); fetchStatus(); }}
           disabled={checking}
           className="text-apex-purple hover:text-apex-purple-light text-sm font-medium flex items-center gap-2"
         >
@@ -199,29 +321,22 @@ export default function ConnectPage() {
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
-              Refresh connection status
+              Refresh status
             </>
           )}
         </button>
       </div>
 
-      {/* Help Section */}
-      <div className="card bg-apex-purple/5 border-apex-purple/20 animate-fade-in delay-3">
+      {/* Help */}
+      <div className="card bg-apex-purple/5 border-apex-purple/20">
         <div className="flex items-start gap-3">
-          <span className="text-2xl">💡</span>
+          <span className="text-2xl">💬</span>
           <div>
-            <h3 className="font-semibold mb-1">How to connect</h3>
-            <ol className="text-gray-400 text-sm space-y-2 list-decimal list-inside mb-3">
-              <li>Click "Connect Facebook" or "Connect Instagram" above</li>
-              <li>Log in with your credentials in the new window</li>
-              <li>Select your Facebook Page and/or Instagram account</li>
-              <li>Authorize the connection</li>
-              <li>Come back here and click "Refresh connection status"</li>
-            </ol>
-            <p className="text-gray-500 text-sm mb-3">
-              Need help? We can walk you through it.
+            <h3 className="font-semibold mb-1">Need help?</h3>
+            <p className="text-gray-400 text-sm">
+              If you're having trouble connecting, we're here to help.
             </p>
-            <a href="mailto:support@getapexautomation.com" className="text-apex-purple hover:text-apex-purple-light text-sm font-medium">
+            <a href="mailto:support@getapexautomation.com" className="text-apex-purple hover:text-apex-purple-light text-sm font-medium mt-2 inline-block">
               Contact Support →
             </a>
           </div>
