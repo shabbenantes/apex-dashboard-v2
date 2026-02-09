@@ -1,23 +1,6 @@
 import { getSession } from '@/lib/auth'
+import { getDashboardStats, getConversations, formatRelativeTime } from '@/lib/ghl'
 import StatsCard from '@/components/StatsCard'
-import RecentConversations from '@/components/RecentConversations'
-
-async function getStats(locationId: string, apiKey: string) {
-  // TODO: Call GHL API to get real stats
-  // For now, return placeholder data
-  return {
-    messagesThisWeek: 0,
-    avgResponseTime: '< 1 min',
-    leadsCapture: 0,
-    conversionRate: '--',
-  }
-}
-
-async function getRecentConversations(locationId: string, apiKey: string) {
-  // TODO: Call GHL API to get real conversations
-  // For now, return empty
-  return []
-}
 
 export default async function DashboardPage() {
   const session = await getSession()
@@ -26,8 +9,11 @@ export default async function DashboardPage() {
     return null // Layout will redirect
   }
 
-  const stats = await getStats(session.locationId, session.apiKey)
-  const conversations = await getRecentConversations(session.locationId, session.apiKey)
+  // Fetch real data from GHL
+  const [stats, conversations] = await Promise.all([
+    getDashboardStats(session.locationId, session.apiKey),
+    getConversations(session.locationId, session.apiKey, 5),
+  ])
 
   return (
     <div className="max-w-6xl">
@@ -58,7 +44,7 @@ export default async function DashboardPage() {
         />
         <StatsCard
           title="Leads Captured"
-          value={stats.leadsCapture}
+          value={stats.leadsThisWeek}
           icon="users"
           className="animate-fade-in delay-3"
         />
@@ -104,7 +90,34 @@ export default async function DashboardPage() {
               View all →
             </a>
           </div>
-          <RecentConversations conversations={conversations} />
+          <div className="space-y-4">
+            {conversations.slice(0, 5).map((convo) => (
+              <a
+                key={convo.id}
+                href={`/conversations/${convo.id}`}
+                className="flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors group"
+              >
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-apex-purple/30 to-apex-purple-light/30 flex items-center justify-center flex-shrink-0">
+                  <span className="text-sm font-medium text-apex-purple">
+                    {(convo.contactName || 'UN').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-0.5">
+                    <span className="font-medium text-sm">{convo.contactName || 'Unknown'}</span>
+                    <span className="text-xs text-gray-500">{formatRelativeTime(convo.lastMessageDate)}</span>
+                  </div>
+                  <p className="text-xs text-gray-500 truncate">
+                    {convo.lastMessageDirection === 'outbound' ? '↗️ ' : '↙️ '}
+                    {convo.lastMessageBody?.substring(0, 60) || 'No message'}
+                  </p>
+                </div>
+                {convo.unreadCount > 0 && (
+                  <div className="w-2 h-2 bg-apex-purple rounded-full flex-shrink-0" />
+                )}
+              </a>
+            ))}
+          </div>
         </div>
       )}
     </div>
