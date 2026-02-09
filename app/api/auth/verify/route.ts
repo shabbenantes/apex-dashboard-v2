@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
-const API_URL = process.env.DASHBOARD_API_URL || 'https://apex-dashboard-api.onrender.com'
+const API_URL = process.env.DASHBOARD_API_URL || 'https://apex-dashboard-api-5r3u.onrender.com'
 
 export async function POST(request: Request) {
   try {

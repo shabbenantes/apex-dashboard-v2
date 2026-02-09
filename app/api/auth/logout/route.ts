@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
-const API_URL = process.env.DASHBOARD_API_URL || 'https://apex-dashboard-api.onrender.com'
+const API_URL = process.env.DASHBOARD_API_URL || 'https://apex-dashboard-api-5r3u.onrender.com'
 
 export async function GET() {
   const cookieStore = await cookies()
@@ -23,6 +23,6 @@ export async function GET() {
   cookieStore.delete('apex_business')
   
   // Redirect to login
-  const dashboardUrl = process.env.NEXT_PUBLIC_DASHBOARD_URL || 'https://apex-dashboard.onrender.com'
+  const dashboardUrl = process.env.NEXT_PUBLIC_DASHBOARD_URL || 'https://apex-dashboard-lt3v.onrender.com'
   return NextResponse.redirect(new URL('/login', dashboardUrl))
 }
