@@ -45,7 +45,7 @@ export default function MobileNav({ businessName }: { businessName: string }) {
       {/* Mobile menu overlay - covers entire screen below header */}
       {isOpen && (
         <div 
-          className="lg:hidden fixed top-16 left-0 right-0 bottom-0 bg-[#0F0F1A]/95 z-40"
+          className="lg:hidden fixed top-16 left-0 right-0 bottom-0 bg-[#0F0F1A] z-40"
           onClick={() => setIsOpen(false)}
         />
       )}
