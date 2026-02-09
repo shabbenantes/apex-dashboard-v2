@@ -23,14 +23,16 @@ function VerifyContent() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token }),
-      credentials: 'same-origin',
+      credentials: 'include',
     })
       .then(async (res) => {
         const data = await res.json()
         if (res.ok) {
           setStatus('success')
-          // Redirect to dashboard after short delay
-          setTimeout(() => router.push('/dashboard'), 1500)
+          // Use full page navigation to ensure cookies are processed
+          setTimeout(() => {
+            window.location.href = '/dashboard'
+          }, 1500)
         } else {
           setStatus('error')
           setError(data.error || 'Invalid or expired link')
