@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { ApexSession, SessionData } from '@/lib/session'
+import ConnectFacebookModal from '@/components/ConnectFacebookModal'
 
 interface IntegrationStatus {
   facebook: { connected: boolean; pageName?: string }
@@ -9,137 +10,12 @@ interface IntegrationStatus {
   ghlConnectUrl?: string
 }
 
-function ConnectModal({ 
-  platform, 
-  ghlUrl, 
-  userEmail, 
-  onClose, 
-  onDone 
-}: { 
-  platform: 'facebook' | 'instagram'
-  ghlUrl: string
-  userEmail: string
-  onClose: () => void
-  onDone: () => void
-}) {
-  const [step, setStep] = useState(1)
-  const [opened, setOpened] = useState(false)
-  const platformName = platform === 'facebook' ? 'Facebook' : 'Instagram'
-
-  const openGHL = () => {
-    window.open(ghlUrl, '_blank')
-    setOpened(true)
-    setStep(2)
+interface OnboardingStatus {
+  ghlPortalUrl?: string
+  ghlCredentials?: {
+    email: string
+    password: string
   }
-
-  return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-apex-card border border-apex-border rounded-2xl max-w-lg w-full">
-        {/* Header */}
-        <div className="p-6 border-b border-apex-border flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-display font-bold">Connect {platformName}</h2>
-            <p className="text-gray-400 text-sm mt-1">Follow these steps to connect your {platformName}</p>
-          </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-white p-1">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="p-6">
-          {step === 1 && (
-            <div className="space-y-6">
-              <div className="bg-apex-purple/10 border border-apex-purple/20 rounded-xl p-4">
-                <p className="text-sm text-gray-300">
-                  <span className="text-apex-purple font-medium">Your login email:</span> {userEmail}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Use this email when logging in
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex items-start gap-4">
-                  <div className="w-8 h-8 bg-apex-purple/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-sm font-bold text-apex-purple">1</span>
-                  </div>
-                  <div>
-                    <p className="font-medium">Click the button below to open the connection page</p>
-                    <p className="text-gray-400 text-sm">A new window will open</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="w-8 h-8 bg-gray-700 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-sm font-bold text-gray-400">2</span>
-                  </div>
-                  <div>
-                    <p className="text-gray-400">Log in with the email above</p>
-                    <p className="text-gray-500 text-sm">Check your email for a magic link</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="w-8 h-8 bg-gray-700 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-sm font-bold text-gray-400">3</span>
-                  </div>
-                  <div>
-                    <p className="text-gray-400">Click "{platformName}" and authorize</p>
-                    <p className="text-gray-500 text-sm">Select your {platformName} page/account</p>
-                  </div>
-                </div>
-              </div>
-
-              <button onClick={openGHL} className="btn-primary w-full">
-                Open Connection Page →
-              </button>
-            </div>
-          )}
-
-          {step === 2 && (
-            <div className="space-y-6">
-              <div className="text-center py-4">
-                <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-semibold mb-2">Connection page opened!</h3>
-                <p className="text-gray-400 text-sm">
-                  Complete the steps in the other window, then come back here.
-                </p>
-              </div>
-
-              <div className="bg-gray-800/50 rounded-xl p-4 space-y-3">
-                <p className="text-sm font-medium">Quick reminder:</p>
-                <ol className="text-sm text-gray-400 space-y-2 list-decimal list-inside">
-                  <li>Log in with <span className="text-white">{userEmail}</span></li>
-                  <li>Find "{platformName}" in the integrations list</li>
-                  <li>Click Connect and authorize access</li>
-                  <li>Come back here when done</li>
-                </ol>
-              </div>
-
-              <div className="flex gap-3">
-                <button 
-                  onClick={() => window.open(ghlUrl, '_blank')} 
-                  className="flex-1 py-3 px-4 rounded-xl border border-apex-border text-gray-300 hover:bg-white/5"
-                >
-                  Reopen Page
-                </button>
-                <button onClick={onDone} className="btn-primary flex-1">
-                  I'm Done
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
 }
 
 export default function ConnectPage() {
@@ -147,24 +23,37 @@ export default function ConnectPage() {
     facebook: { connected: false },
     instagram: { connected: false },
   })
+  const [onboarding, setOnboarding] = useState<OnboardingStatus>({})
   const [loading, setLoading] = useState(true)
   const [checking, setChecking] = useState(false)
   const [showModal, setShowModal] = useState<'facebook' | 'instagram' | null>(null)
-  const [session, setSession] = useState<SessionData | null>(null)
+  const [verifying, setVerifying] = useState(false)
+  const [verifyError, setVerifyError] = useState<string | null>(null)
 
   async function fetchStatus() {
     try {
       const token = ApexSession.getToken()
-      const res = await fetch('/api/integrations', {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-        cache: 'no-store',
-      })
-      if (res.ok) {
-        const data = await res.json()
+      const [intRes, onboardRes] = await Promise.all([
+        fetch('/api/integrations', {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+          cache: 'no-store',
+        }),
+        fetch('/api/onboarding/status', {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+          cache: 'no-store',
+        })
+      ])
+      
+      if (intRes.ok) {
+        const data = await intRes.json()
         setStatus(data)
       }
+      if (onboardRes.ok) {
+        const data = await onboardRes.json()
+        setOnboarding(data)
+      }
     } catch (err) {
-      console.error('Failed to fetch integration status:', err)
+      console.error('Failed to fetch status:', err)
     } finally {
       setLoading(false)
       setChecking(false)
@@ -172,14 +61,40 @@ export default function ConnectPage() {
   }
 
   useEffect(() => {
-    setSession(ApexSession.get())
     fetchStatus()
   }, [])
 
-  const handleConnectDone = () => {
+  const verifyConnection = async (type: 'facebook' | 'instagram') => {
+    setVerifying(true)
+    setVerifyError(null)
+    const token = ApexSession.getToken()
+    
+    try {
+      const res = await fetch(`/api/onboarding/verify-${type}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      })
+      
+      const data = await res.json()
+      
+      if (data.connected) {
+        setShowModal(null)
+        setChecking(true)
+        fetchStatus()
+      } else {
+        setVerifyError(data.message || `${type === 'facebook' ? 'Facebook' : 'Instagram'} connection not detected. Please complete all steps and try again.`)
+      }
+    } catch (err) {
+      console.error(`Failed to verify ${type}:`, err)
+      setVerifyError('Verification failed. Please try again.')
+    } finally {
+      setVerifying(false)
+    }
+  }
+
+  const handleCloseModal = () => {
     setShowModal(null)
-    setChecking(true)
-    fetchStatus()
+    setVerifyError(null)
   }
 
   if (loading) {
@@ -205,13 +120,15 @@ export default function ConnectPage() {
   return (
     <div className="max-w-2xl">
       {/* Modal */}
-      {showModal && status.ghlConnectUrl && session && (
-        <ConnectModal
+      {showModal && (
+        <ConnectFacebookModal
           platform={showModal}
-          ghlUrl={status.ghlConnectUrl}
-          userEmail={session.email}
-          onClose={() => setShowModal(null)}
-          onDone={handleConnectDone}
+          portalUrl={onboarding.ghlPortalUrl}
+          credentials={onboarding.ghlCredentials}
+          onClose={handleCloseModal}
+          onVerify={() => verifyConnection(showModal)}
+          verifying={verifying}
+          error={verifyError}
         />
       )}
 

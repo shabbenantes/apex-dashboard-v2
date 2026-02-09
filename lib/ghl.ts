@@ -64,12 +64,31 @@ export async function getConversations(locationId: string, apiKey: string, limit
       lastMessageDate: c.lastMessageDate,
       lastMessageDirection: c.lastMessageDirection,
       unreadCount: c.unreadCount || 0,
-      type: c.type,
+      type: getConversationType(c.type),
     }))
   } catch (error) {
     console.error('Failed to fetch conversations:', error)
     return []
   }
+}
+
+// Map GHL conversation type numbers to readable strings
+function getConversationType(type: number | string): string {
+  if (typeof type === 'string') return type
+  
+  const typeMap: Record<number, string> = {
+    1: 'TYPE_FACEBOOK',
+    2: 'TYPE_INSTAGRAM', 
+    3: 'TYPE_SMS',
+    4: 'TYPE_EMAIL',
+    5: 'TYPE_CALL',
+    6: 'TYPE_LIVE_CHAT',
+    7: 'TYPE_GOOGLE',
+    11: 'TYPE_FACEBOOK', // FB Messenger
+    12: 'TYPE_INSTAGRAM', // IG DM
+  }
+  
+  return typeMap[type] || 'TYPE_SMS'
 }
 
 export async function getContacts(locationId: string, apiKey: string, limit = 20): Promise<Contact[]> {
