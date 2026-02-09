@@ -23,8 +23,7 @@ export async function getSession(): Promise<Session | null> {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sessionId }),
-      // Cache for 1 minute to reduce API calls
-      next: { revalidate: 60 }
+      cache: 'no-store',
     })
 
     if (!response.ok) {

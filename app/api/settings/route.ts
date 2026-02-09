@@ -13,6 +13,7 @@ async function getSessionData() {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ sessionId }),
+    cache: 'no-store',
   })
   
   if (!response.ok) return null
@@ -27,7 +28,9 @@ export async function GET() {
     }
 
     // Fetch settings from dashboard API
-    const response = await fetch(`${API_URL}/settings/${session.locationId}`)
+    const response = await fetch(`${API_URL}/settings/${session.locationId}`, {
+      cache: 'no-store',
+    })
     
     if (!response.ok) {
       // Return defaults if we can't fetch
