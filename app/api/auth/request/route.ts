@@ -30,8 +30,8 @@ export async function POST(request: Request) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         email: customer.email,
-        locationId: customer.locationId,
-        apiKey: customer.apiKey || '',
+        locationId: customer.ghlLocationId || customer.locationId,
+        apiKey: customer.ghlApiKey || customer.apiKey || '',
         businessName: customer.businessName || 'Your Business',
       }),
       cache: 'no-store',
