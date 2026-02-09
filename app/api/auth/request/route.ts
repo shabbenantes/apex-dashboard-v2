@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 
-const N8N_WEBHOOK_URL = process.env.N8N_AUTH_WEBHOOK_URL || 'https://getapexautomation.app.n8n.cloud/webhook/apex-dashboard-auth'
+const API_URL = process.env.DASHBOARD_API_URL || 'https://apex-dashboard-api-5r3u.onrender.com'
 
 export async function POST(request: Request) {
   try {
@@ -10,29 +10,49 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 })
     }
 
-    // Call n8n webhook to handle the magic link flow
-    // n8n will:
-    // 1. Look up customer by email in the API
-    // 2. Create a token via the API
-    // 3. Send magic link email via Zoho
-    const response = await fetch(N8N_WEBHOOK_URL, {
+    // Step 1: Look up customer in API
+    const customerRes = await fetch(`${API_URL}/customers/${encodeURIComponent(email)}`)
+    
+    if (!customerRes.ok) {
+      return NextResponse.json({ 
+        error: 'Email not found. Are you an Apex customer?' 
+      }, { status: 404 })
+    }
+
+    const customer = await customerRes.json()
+
+    // Step 2: Create magic link token
+    const tokenRes = await fetch(`${API_URL}/tokens`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        email,
-        dashboardUrl: process.env.NEXT_PUBLIC_DASHBOARD_URL || 'https://apex-dashboard.onrender.com'
+      body: JSON.stringify({
+        email: customer.email,
+        locationId: customer.locationId,
+        apiKey: customer.apiKey || '',
+        businessName: customer.businessName || 'Your Business',
       }),
     })
 
-    const data = await response.json()
-
-    if (!response.ok || data.error) {
-      return NextResponse.json({ 
-        error: data.error || 'Email not found. Are you an Apex customer?' 
-      }, { status: response.ok ? 400 : response.status })
+    if (!tokenRes.ok) {
+      return NextResponse.json({ error: 'Failed to create login link' }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true })
+    const { token } = await tokenRes.json()
+
+    // Step 3: For now, return the magic link directly (we'll add email later)
+    // In production, this would send an email via Zoho/n8n
+    const dashboardUrl = process.env.NEXT_PUBLIC_DASHBOARD_URL || 'https://apex-dashboard-lt3v.onrender.com'
+    const magicLink = `${dashboardUrl}/auth/verify?token=${token}`
+
+    // TODO: Send email via Zoho
+    // For testing, we'll return the link in the response (remove in production)
+    console.log('Magic link:', magicLink)
+
+    return NextResponse.json({ 
+      success: true,
+      // TEMP: Return link for testing (remove in production)
+      _debug_link: magicLink
+    })
   } catch (error) {
     console.error('Auth request error:', error)
     return NextResponse.json({ error: 'Something went wrong' }, { status: 500 })
