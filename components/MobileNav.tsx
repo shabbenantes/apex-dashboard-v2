@@ -42,17 +42,17 @@ export default function MobileNav({ businessName }: { businessName: string }) {
         </button>
       </div>
 
-      {/* Mobile menu overlay - covers screen below header */}
+      {/* Mobile menu overlay - covers entire screen below header */}
       {isOpen && (
         <div 
-          className="lg:hidden fixed top-16 left-0 right-0 bottom-0 bg-black/70 z-40"
+          className="lg:hidden fixed top-16 left-0 right-0 bottom-0 bg-[#0F0F1A]/95 z-40"
           onClick={() => setIsOpen(false)}
         />
       )}
 
       {/* Mobile menu panel */}
       {isOpen && (
-      <div className="lg:hidden fixed top-16 left-0 right-0 bg-[#0F0F1A] border-b border-apex-border z-50 shadow-xl animate-fade-in">
+      <div className="lg:hidden fixed top-16 left-0 right-0 bg-[#0F0F1A] border-b border-apex-border z-50 shadow-2xl">
         {/* Business name */}
         <div className="px-4 py-3 border-b border-apex-border bg-[#0F0F1A]">
           <div className="text-xs text-gray-500 uppercase tracking-wider">Business</div>
