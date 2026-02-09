@@ -53,7 +53,15 @@ export async function getConversations(locationId: string, apiKey: string, limit
     }
 
     const data = await response.json()
-    return (data.conversations || []).map((c: any) => ({
+    
+    // Filter to only Facebook and Instagram conversations
+    const socialTypes = ['TYPE_FACEBOOK', 'TYPE_INSTAGRAM', 'FB', 'IG', 'FACEBOOK', 'INSTAGRAM']
+    const socialConversations = (data.conversations || []).filter((c: any) => {
+      const messageType = String(c.lastMessageType || '').toUpperCase()
+      return socialTypes.some(t => messageType.includes(t))
+    })
+    
+    return socialConversations.map((c: any) => ({
       id: c.id,
       contactId: c.contactId,
       contactName: c.contactName || c.fullName || 'Unknown',
@@ -64,8 +72,6 @@ export async function getConversations(locationId: string, apiKey: string, limit
       lastMessageDate: c.lastMessageDate,
       lastMessageDirection: c.lastMessageDirection,
       unreadCount: c.unreadCount || 0,
-      // Use lastMessageType for the channel badge (shows actual channel used)
-      // Fall back to type if lastMessageType isn't available
       type: formatChannelType(c.lastMessageType || c.type),
     }))
   } catch (error) {
