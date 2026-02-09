@@ -33,8 +33,13 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${DASHBOARD_URL}/login?error=invalid_token`)
     }
 
-    // Return HTML page that will redirect after cookies are set
-    // This gives the browser time to process the Set-Cookie headers
+    // Return HTML page that sets cookies via JavaScript
+    // This is more reliable across different browsers than HTTP Set-Cookie
+    const businessData = encodeURIComponent(JSON.stringify({
+      businessName: data.businessName,
+      email: data.email,
+    }))
+    
     const html = `
 <!DOCTYPE html>
 <html>
@@ -76,45 +81,31 @@ export async function GET(request: Request) {
     <p>Signing you in...</p>
   </div>
   <script>
-    // Redirect after a short delay to ensure cookies are saved
+    // Set cookies via JavaScript for better browser compatibility
+    var maxAge = 60 * 60 * 24 * 30; // 30 days in seconds
+    var expires = new Date(Date.now() + maxAge * 1000).toUTCString();
+    
+    // Session cookie (for API auth)
+    document.cookie = 'apex_session=${data.sessionId}; path=/; expires=' + expires + '; SameSite=Lax; Secure';
+    
+    // Business info cookie (for display)
+    document.cookie = 'apex_business=${businessData}; path=/; expires=' + expires + '; SameSite=Lax; Secure';
+    
+    // Redirect to dashboard
     setTimeout(function() {
       window.location.href = '${DASHBOARD_URL}/dashboard';
-    }, 500);
+    }, 100);
   </script>
 </body>
 </html>
 `
 
-    // Create response with HTML and cookies
-    const response = new NextResponse(html, {
+    return new NextResponse(html, {
       status: 200,
       headers: {
         'Content-Type': 'text/html',
       },
     })
-
-    // Set session cookie
-    response.cookies.set('apex_session', data.sessionId, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 30, // 30 days
-      path: '/',
-    })
-
-    // Set business info cookie (for client-side use)
-    response.cookies.set('apex_business', JSON.stringify({
-      businessName: data.businessName,
-      email: data.email,
-    }), {
-      httpOnly: false,
-      secure: true,
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 30,
-      path: '/',
-    })
-
-    return response
   } catch (error) {
     console.error('Auth callback error:', error)
     return NextResponse.redirect(`${DASHBOARD_URL}/login?error=server_error`)
