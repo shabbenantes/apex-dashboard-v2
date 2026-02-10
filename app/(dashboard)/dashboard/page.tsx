@@ -278,40 +278,36 @@ export default function DashboardPage() {
         />
       </div>
 
-      {/* Getting Started Card (show when no activity) */}
-      {conversations.length === 0 && (
-        <div className="card animate-fade-in bg-gradient-to-br from-apex-purple/10 to-transparent border-apex-purple/20">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-apex-purple/20 rounded-xl flex items-center justify-center flex-shrink-0">
-              <span className="text-2xl">🚀</span>
-            </div>
-            <div>
-              <h3 className="font-semibold text-lg mb-2">Getting Started</h3>
-              <p className="text-gray-400 mb-4">
-                Your AI assistant is set up and ready! Once customers start messaging your Facebook or Instagram page, their conversations will appear here.
-              </p>
-              <div className="flex gap-4">
-                <a href="/settings" className="text-apex-purple hover:text-apex-purple-light font-medium text-sm">
-                  Configure your AI →
-                </a>
-                <a href="/connect" className="text-gray-400 hover:text-white font-medium text-sm">
-                  Check connections →
-                </a>
-              </div>
-            </div>
-          </div>
+      {/* Recent Conversations - Always visible for easy access */}
+      <div className="card animate-fade-in mb-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="font-display text-xl font-semibold">Recent Conversations</h2>
+          <a href="/conversations" className="text-apex-purple hover:text-apex-purple-light text-sm font-medium">
+            View all →
+          </a>
         </div>
-      )}
-
-      {/* Recent Conversations */}
-      {conversations.length > 0 && (
-        <div className="card animate-fade-in">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="font-display text-xl font-semibold">Recent Conversations</h2>
-            <a href="/conversations" className="text-apex-purple hover:text-apex-purple-light text-sm font-medium">
-              View all →
-            </a>
+        
+        {conversations.length === 0 ? (
+          <div className="text-center py-8">
+            <div className="w-16 h-16 bg-apex-purple/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-apex-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold mb-2">No conversations yet</h3>
+            <p className="text-gray-400 text-sm mb-4">
+              When customers message your Facebook or Instagram page, their conversations will appear here.
+            </p>
+            <div className="flex justify-center gap-4">
+              <a href="/settings" className="text-apex-purple hover:text-apex-purple-light font-medium text-sm">
+                Configure your AI →
+              </a>
+              <a href="/connect" className="text-gray-400 hover:text-white font-medium text-sm">
+                Check connections →
+              </a>
+            </div>
           </div>
+        ) : (
           <div className="space-y-4">
             {conversations.slice(0, 5).map((convo) => (
               <a
@@ -354,8 +350,8 @@ export default function DashboardPage() {
               </a>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }
