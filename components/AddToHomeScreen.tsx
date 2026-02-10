@@ -69,11 +69,15 @@ export default function AddToHomeScreen({ onDismiss }: { onDismiss: () => void }
                       <p className="text-gray-400 text-sm">
                         Look for the share icon at the bottom of Safari
                       </p>
-                      <div className="mt-3 flex items-center justify-center bg-gray-800 rounded-lg p-4">
-                        {/* iOS Safari share icon - square with arrow up */}
-                        <svg className="w-8 h-8 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 8.25H7.5a2.25 2.25 0 00-2.25 2.25v9a2.25 2.25 0 002.25 2.25h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25H15M12 15V3m0 0l-3 3m3-3l3 3" />
+                      <div className="mt-3 flex items-center justify-center bg-gray-800 rounded-lg p-4 gap-3">
+                        {/* iOS Safari share icon */}
+                        <svg className="w-7 h-7 text-blue-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
+                          {/* Arrow pointing up */}
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 16V4m0 0L8 8m4-4l4 4" />
+                          {/* Open-top box/tray */}
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 10v8a2 2 0 002 2h8a2 2 0 002-2v-8" />
                         </svg>
+                        <span className="text-white font-medium">Share</span>
                       </div>
                     </div>
                   </div>
