@@ -1,11 +1,21 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { ApexSession } from '@/lib/session'
 import ConnectFacebookModal from '@/components/ConnectFacebookModal'
 
 // Channel definitions - easy to add more
-const CHANNELS = {
+interface ChannelConfig {
+  name: string
+  icon: React.ReactNode
+  bgClass: string
+  description: string
+  connectedText: string
+  available: boolean
+  comingSoon?: boolean
+}
+
+const CHANNELS: Record<string, ChannelConfig> = {
   facebook: {
     name: 'Facebook Messenger',
     icon: (
@@ -84,7 +94,7 @@ const CHANNELS = {
   },
 }
 
-type ChannelKey = keyof typeof CHANNELS
+type ChannelKey = 'facebook' | 'instagram' | 'tiktok' | 'google' | 'whatsapp' | 'linkedin'
 
 interface IntegrationStatus {
   facebook: { connected: boolean; pageName?: string }
@@ -270,7 +280,7 @@ export default function ConnectPage() {
   return (
     <div className="max-w-2xl">
       {/* Modal */}
-      {showModal && (
+      {showModal && (showModal === 'facebook' || showModal === 'instagram') && (
         <ConnectFacebookModal
           platform={showModal}
           portalUrl={onboarding.ghlPortalUrl}
