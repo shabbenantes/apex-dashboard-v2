@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
     // Get GHL credentials (email is the customer email, password is set during onboarding)
     const ghlCredentials = customer.ghlCredentials || {
       email: customer.email,
-      password: 'Apex2024!' // GHL requires uppercase, lowercase, number, special char
+      password: 'Apex2026!' // GHL requires uppercase, lowercase, number, special char
     }
 
     return NextResponse.json({
