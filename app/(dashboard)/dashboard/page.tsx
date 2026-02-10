@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ApexSession } from '@/lib/session'
+import { ApexSession, SessionData } from '@/lib/session'
 import StatsCard from '@/components/StatsCard'
 import AddToHomeScreen from '@/components/AddToHomeScreen'
 import SetupChecklist from '@/components/SetupChecklist'
@@ -21,6 +21,8 @@ interface Conversation {
   unread: boolean
   messageCount: number
   direction: string
+  needsAttention?: boolean
+  isToday?: boolean
 }
 
 export default function DashboardPage() {
@@ -34,6 +36,15 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showAddToHome, setShowAddToHome] = useState(false)
+  const [session, setSession] = useState<SessionData | null>(null)
+  
+  // Get session for business name
+  useEffect(() => {
+    const currentSession = ApexSession.get()
+    if (currentSession) {
+      setSession(currentSession)
+    }
+  }, [])
 
   // Check if we should show "Add to Home Screen" prompt
   useEffect(() => {
@@ -124,7 +135,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="mb-8 animate-fade-in">
         <h1 className="font-display text-3xl font-bold mb-2">
-          Welcome back! 👋
+          {session?.businessName ? `Welcome back, ${session.businessName}! 👋` : 'Welcome back! 👋'}
         </h1>
         <p className="text-gray-400">
           Here's how your AI assistant is performing.
@@ -208,15 +219,29 @@ export default function DashboardPage() {
                 href={`/conversations/${convo.id}`}
                 className="flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors group"
               >
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-apex-purple/30 to-apex-purple-light/30 flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-medium text-apex-purple">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                  convo.needsAttention 
+                    ? 'bg-gradient-to-br from-orange-500/30 to-orange-400/30' 
+                    : 'bg-gradient-to-br from-apex-purple/30 to-apex-purple-light/30'
+                }`}>
+                  <span className={`text-sm font-medium ${convo.needsAttention ? 'text-orange-400' : 'text-apex-purple'}`}>
                     {(convo.name || 'UN').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-0.5">
+                  <div className="flex items-center gap-2 mb-0.5">
                     <span className="font-medium text-sm">{convo.name || 'Unknown'}</span>
-                    <span className="text-xs text-gray-500">{convo.time}</span>
+                    {convo.needsAttention && (
+                      <span className="text-[10px] font-medium text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded">
+                        Needs Attention
+                      </span>
+                    )}
+                    {convo.isToday && !convo.needsAttention && (
+                      <span className="text-[10px] font-medium text-green-400 bg-green-500/10 px-1.5 py-0.5 rounded">
+                        Today
+                      </span>
+                    )}
+                    <span className="text-xs text-gray-500 ml-auto">{convo.time}</span>
                   </div>
                   <p className="text-xs text-gray-500 truncate">
                     {convo.direction === 'outbound' ? '↗️ ' : '↙️ '}

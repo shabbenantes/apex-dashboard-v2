@@ -12,6 +12,8 @@ interface Conversation {
   messageCount: number
   type: string
   direction: string
+  needsAttention?: boolean
+  isToday?: boolean
 }
 
 const PAGE_SIZE = 20
@@ -166,11 +168,15 @@ export default function ConversationsPage() {
               href={`/conversations/${convo.id}`}
               className="card block hover:bg-white/5 transition-colors group"
             >
-              {/* Top row: Avatar, Name, Badge, Time */}
+              {/* Top row: Avatar, Name, Badges */}
               <div className="flex items-center gap-3 mb-3">
                 {/* Avatar */}
-                <div className="w-11 h-11 rounded-full bg-gradient-to-br from-apex-purple/30 to-apex-purple-light/30 flex items-center justify-center flex-shrink-0">
-                  <span className="text-base font-medium text-apex-purple">
+                <div className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 ${
+                  convo.needsAttention 
+                    ? 'bg-gradient-to-br from-orange-500/30 to-orange-400/30' 
+                    : 'bg-gradient-to-br from-apex-purple/30 to-apex-purple-light/30'
+                }`}>
+                  <span className={`text-base font-medium ${convo.needsAttention ? 'text-orange-400' : 'text-apex-purple'}`}>
                     {convo.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                   </span>
                 </div>
@@ -182,9 +188,26 @@ export default function ConversationsPage() {
                   </span>
                 </div>
 
-                {/* Badge */}
-                <div className="text-xs font-medium text-apex-purple bg-apex-purple/10 px-2.5 py-1 rounded-full flex-shrink-0">
-                  {convo.type.replace('TYPE_', '')}
+                {/* Badges */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {/* Needs Attention badge */}
+                  {convo.needsAttention && (
+                    <div className="text-xs font-medium text-orange-400 bg-orange-500/10 px-2.5 py-1 rounded-full">
+                      Needs Attention
+                    </div>
+                  )}
+                  
+                  {/* Today badge */}
+                  {convo.isToday && !convo.needsAttention && (
+                    <div className="text-xs font-medium text-green-400 bg-green-500/10 px-2.5 py-1 rounded-full">
+                      Today
+                    </div>
+                  )}
+                  
+                  {/* Channel badge */}
+                  <div className="text-xs font-medium text-apex-purple bg-apex-purple/10 px-2.5 py-1 rounded-full">
+                    {convo.type.replace('TYPE_', '')}
+                  </div>
                 </div>
 
                 {/* Unread indicator */}
