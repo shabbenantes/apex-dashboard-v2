@@ -97,7 +97,17 @@ export async function GET(request: Request) {
     const paginated = formatted.slice(offset, offset + limit)
     console.log(`[conversations route] Returning ${paginated.length} conversations (offset: ${offset}, limit: ${limit})`)
 
-    return NextResponse.json({ conversations: paginated })
+    return NextResponse.json({ 
+      conversations: paginated,
+      _debug: {
+        locationId,
+        apiKeyPrefix: apiKey?.substring(0, 15),
+        fetchLimit,
+        rawCount: allConversations.length,
+        formattedCount: formatted.length,
+        paginatedCount: paginated.length,
+      }
+    })
   } catch (error) {
     console.error('Get conversations error:', error)
     return NextResponse.json({ error: 'Failed to load conversations' }, { status: 500 })
