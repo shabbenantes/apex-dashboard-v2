@@ -107,7 +107,7 @@ export async function GET(request: Request) {
     const todayTimestamp = today.getTime()
     
     // Format for the frontend
-    const formatted = allConversations.map(c => {
+    const formatted = allConversations.map((c: any) => {
       const messageText = (c.lastMessageBody || '').toLowerCase()
       const needsAttention = escalationKeywords.some(keyword => messageText.includes(keyword))
       const isToday = c.lastMessageDate >= todayTimestamp
