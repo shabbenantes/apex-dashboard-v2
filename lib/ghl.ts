@@ -42,7 +42,7 @@ export async function getConversations(locationId: string, apiKey: string, limit
           'Authorization': `Bearer ${apiKey}`,
           'Version': GHL_API_VERSION,
         },
-        next: { revalidate: 60 }, // Cache for 1 minute
+        cache: 'no-store', // Don't cache - always fetch fresh
       }
     )
 
@@ -55,10 +55,17 @@ export async function getConversations(locationId: string, apiKey: string, limit
     
     // Filter to only Facebook and Instagram conversations
     const socialTypes = ['TYPE_FACEBOOK', 'TYPE_INSTAGRAM', 'FB', 'IG', 'FACEBOOK', 'INSTAGRAM']
-    const socialConversations = (data.conversations || []).filter((c: any) => {
+    const allConvos = data.conversations || []
+    console.log(`[getConversations] Total from GHL: ${allConvos.length}`)
+    
+    const socialConversations = allConvos.filter((c: any) => {
       const messageType = String(c.lastMessageType || '').toUpperCase()
-      return socialTypes.some(t => messageType.includes(t))
+      const isSocial = socialTypes.some(t => messageType.includes(t))
+      console.log(`[getConversations] ${c.contactName}: ${c.lastMessageType} -> ${isSocial ? 'KEEP' : 'SKIP'}`)
+      return isSocial
     })
+    
+    console.log(`[getConversations] After filter: ${socialConversations.length}`)
     
     return socialConversations.map((c: any) => ({
       id: c.id,
