@@ -10,7 +10,7 @@ interface Stats {
   messagesThisWeek: number
   avgResponseTime: string
   leadsThisWeek: number
-  conversionRate: string
+  totalConversations: number
 }
 
 interface Conversation {
@@ -28,7 +28,7 @@ export default function DashboardPage() {
     messagesThisWeek: 0,
     avgResponseTime: '< 1 min',
     leadsThisWeek: 0,
-    conversionRate: '--'
+    totalConversations: 0
   })
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
@@ -159,9 +159,10 @@ export default function DashboardPage() {
           className="animate-fade-in delay-3"
         />
         <StatsCard
-          title="Conversion Rate"
-          value={stats.conversionRate}
+          title="Total Conversations"
+          value={stats.totalConversations}
           icon="chart"
+          subtitle="All time"
           className="animate-fade-in"
         />
       </div>

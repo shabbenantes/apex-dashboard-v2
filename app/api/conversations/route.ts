@@ -53,7 +53,7 @@ export async function GET(request: Request) {
     const formatted = allConversations.map(c => ({
       id: c.id,
       name: c.contactName || c.fullName,
-      lastMessage: c.lastMessageBody?.substring(0, 100) || 'No messages yet',
+      lastMessage: c.lastMessageBody?.substring(0, 150) || 'No messages yet',
       time: formatRelativeTime(c.lastMessageDate),
       unread: c.unreadCount > 0,
       messageCount: c.unreadCount || 1,

@@ -31,7 +31,7 @@ export interface DashboardStats {
   messagesThisWeek: number
   avgResponseTime: string
   leadsThisWeek: number
-  conversionRate: string
+  totalConversations: number
 }
 
 export async function getConversations(locationId: string, apiKey: string, limit = 20): Promise<Conversation[]> {
@@ -166,14 +166,14 @@ export async function getDashboardStats(locationId: string, apiKey: string): Pro
     // Leads = unique social media conversations (each FB/IG conversation = 1 lead)
     const leadsThisWeek = recentConvos.length
 
-    // Conversion rate placeholder
-    const conversionRate = conversations.length > 0 ? '12%' : '--'
+    // Total conversations all time
+    const totalConversations = conversations.length
 
     return {
       messagesThisWeek,
       avgResponseTime: '< 1 min', // AI responses are instant
       leadsThisWeek,
-      conversionRate,
+      totalConversations,
     }
   } catch (error) {
     console.error('Failed to get dashboard stats:', error)
@@ -181,7 +181,7 @@ export async function getDashboardStats(locationId: string, apiKey: string): Pro
       messagesThisWeek: 0,
       avgResponseTime: '< 1 min',
       leadsThisWeek: 0,
-      conversionRate: '--',
+      totalConversations: 0,
     }
   }
 }

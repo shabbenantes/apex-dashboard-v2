@@ -159,37 +159,31 @@ export default function ConversationsPage() {
           </p>
         </div>
       ) : (
-        <div className="card animate-fade-in delay-2">
-          <div className="divide-y divide-apex-border">
-            {filteredConversations.map((convo) => (
-              <a
-                key={convo.id}
-                href={`/conversations/${convo.id}`}
-                className="flex items-center gap-4 p-4 hover:bg-white/5 transition-colors group -mx-6 px-6 first:rounded-t-2xl last:rounded-b-2xl"
-              >
+        <div className="space-y-3 animate-fade-in delay-2">
+          {filteredConversations.map((convo) => (
+            <a
+              key={convo.id}
+              href={`/conversations/${convo.id}`}
+              className="card block hover:bg-white/5 transition-colors group"
+            >
+              {/* Top row: Avatar, Name, Badge, Time */}
+              <div className="flex items-center gap-3 mb-3">
                 {/* Avatar */}
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-apex-purple/30 to-apex-purple-light/30 flex items-center justify-center flex-shrink-0">
-                  <span className="text-lg font-medium text-apex-purple">
+                <div className="w-11 h-11 rounded-full bg-gradient-to-br from-apex-purple/30 to-apex-purple-light/30 flex items-center justify-center flex-shrink-0">
+                  <span className="text-base font-medium text-apex-purple">
                     {convo.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                   </span>
                 </div>
 
-                {/* Content */}
+                {/* Name */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className={`font-medium ${convo.unread ? 'text-white' : 'text-gray-300'}`}>
-                      {convo.name}
-                    </span>
-                    <span className="text-xs text-gray-500">{convo.time}</span>
-                  </div>
-                  <p className={`text-sm truncate ${convo.unread ? 'text-gray-300' : 'text-gray-500'}`}>
-                    {convo.direction === 'outbound' ? '↗️ ' : '↙️ '}
-                    {convo.lastMessage}
-                  </p>
+                  <span className={`font-semibold ${convo.unread ? 'text-white' : 'text-gray-200'}`}>
+                    {convo.name}
+                  </span>
                 </div>
 
-                {/* Type badge */}
-                <div className="text-xs text-gray-500 flex-shrink-0 px-2 py-1 bg-white/5 rounded">
+                {/* Badge */}
+                <div className="text-xs font-medium text-apex-purple bg-apex-purple/10 px-2.5 py-1 rounded-full flex-shrink-0">
                   {convo.type.replace('TYPE_', '')}
                 </div>
 
@@ -197,19 +191,26 @@ export default function ConversationsPage() {
                 {convo.unread && (
                   <div className="w-2.5 h-2.5 bg-apex-purple rounded-full flex-shrink-0" />
                 )}
+              </div>
 
-                {/* Arrow */}
-                <svg 
-                  className="w-5 h-5 text-gray-600 group-hover:text-gray-400 transition-colors flex-shrink-0" 
-                  fill="none" 
-                  viewBox="0 0 24 24" 
-                  stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5l7 7-7 7" />
-                </svg>
-              </a>
-            ))}
-          </div>
+              {/* Message preview */}
+              <p className={`text-sm leading-relaxed mb-3 ${convo.unread ? 'text-gray-300' : 'text-gray-400'}`}>
+                {convo.direction === 'outbound' ? '↗️ ' : '↙️ '}
+                {convo.lastMessage}
+              </p>
+
+              {/* Bottom row: Time + Arrow */}
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-500">{convo.time}</span>
+                <div className="flex items-center gap-1 text-xs text-gray-500 group-hover:text-apex-purple transition-colors">
+                  <span>View conversation</span>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </div>
+            </a>
+          ))}
         </div>
       )}
 
