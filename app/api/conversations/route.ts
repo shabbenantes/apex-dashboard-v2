@@ -47,7 +47,9 @@ export async function GET(request: Request) {
 
     // Fetch more than needed to account for filtering, then slice
     const fetchLimit = Math.min(limit + offset + 50, 200) // GHL max is usually 100-200
+    console.log(`[conversations route] locationId: ${locationId}, apiKey: ${apiKey?.substring(0, 10)}..., fetchLimit: ${fetchLimit}`)
     const allConversations = await getConversations(locationId, apiKey, fetchLimit)
+    console.log(`[conversations route] Got ${allConversations.length} conversations`)
     
     // Escalation keywords to detect
     const escalationKeywords = [
@@ -93,6 +95,7 @@ export async function GET(request: Request) {
 
     // Apply pagination (offset/limit) after filtering
     const paginated = formatted.slice(offset, offset + limit)
+    console.log(`[conversations route] Returning ${paginated.length} conversations (offset: ${offset}, limit: ${limit})`)
 
     return NextResponse.json({ conversations: paginated })
   } catch (error) {
