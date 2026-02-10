@@ -45,11 +45,44 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '100')
     const offset = parseInt(searchParams.get('offset') || '0')
 
-    // Fetch more than needed to account for filtering, then slice
-    const fetchLimit = Math.min(limit + offset + 50, 200) // GHL max is usually 100-200
-    console.log(`[conversations route] locationId: ${locationId}, apiKey: ${apiKey?.substring(0, 10)}..., fetchLimit: ${fetchLimit}`)
-    const allConversations = await getConversations(locationId, apiKey, fetchLimit)
-    console.log(`[conversations route] Got ${allConversations.length} conversations`)
+    // Fetch directly from GHL to debug the issue
+    console.log(`[conversations route] locationId: ${locationId}, apiKey: ${apiKey?.substring(0, 10)}...`)
+    
+    // Direct GHL call for debugging
+    const ghlResponse = await fetch(
+      `https://services.leadconnectorhq.com/conversations/search?locationId=${locationId}&limit=100`,
+      {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Version': '2021-07-28',
+        },
+        cache: 'no-store',
+      }
+    )
+    
+    const ghlData = await ghlResponse.json()
+    const rawConversations = ghlData.conversations || []
+    console.log(`[conversations route] Raw from GHL: ${rawConversations.length}`)
+    
+    // Filter to FB/IG only
+    const socialTypes = ['TYPE_FACEBOOK', 'TYPE_INSTAGRAM', 'FB', 'IG', 'FACEBOOK', 'INSTAGRAM']
+    const allConversations = rawConversations.filter((c: any) => {
+      const messageType = String(c.lastMessageType || '').toUpperCase()
+      return socialTypes.some(t => messageType.includes(t))
+    }).map((c: any) => ({
+      id: c.id,
+      contactId: c.contactId,
+      contactName: c.contactName || c.fullName || 'Unknown',
+      fullName: c.fullName || c.contactName || 'Unknown',
+      email: c.email,
+      phone: c.phone,
+      lastMessageBody: c.lastMessageBody || '',
+      lastMessageDate: c.lastMessageDate,
+      lastMessageDirection: c.lastMessageDirection,
+      unreadCount: c.unreadCount || 0,
+      type: c.lastMessageType?.replace('TYPE_', '') || 'UNKNOWN',
+    }))
+    console.log(`[conversations route] After filter: ${allConversations.length}`)
     
     // Escalation keywords to detect
     const escalationKeywords = [
@@ -102,8 +135,8 @@ export async function GET(request: Request) {
       _debug: {
         locationId,
         apiKeyPrefix: apiKey?.substring(0, 15),
-        fetchLimit,
-        rawCount: allConversations.length,
+        rawFromGHL: rawConversations?.length || 0,
+        afterFilter: allConversations.length,
         formattedCount: formatted.length,
         paginatedCount: paginated.length,
       }
