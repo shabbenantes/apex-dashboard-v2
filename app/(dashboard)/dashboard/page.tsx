@@ -12,6 +12,11 @@ interface Stats {
   totalConversations: number
 }
 
+interface AIStatus {
+  active: boolean
+  loading: boolean
+}
+
 interface Conversation {
   id: string
   name: string
@@ -35,6 +40,7 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null)
   const [showAddToHome, setShowAddToHome] = useState(false)
   const [session, setSession] = useState<SessionData | null>(null)
+  const [aiStatus, setAiStatus] = useState<AIStatus>({ active: true, loading: true })
   
   // Get session for business name
   useEffect(() => {
@@ -43,6 +49,56 @@ export default function DashboardPage() {
       setSession(currentSession)
     }
   }, [])
+
+  // Fetch AI status from settings
+  useEffect(() => {
+    async function fetchAIStatus() {
+      const token = ApexSession.getToken()
+      if (!token) return
+      
+      try {
+        const res = await fetch('/api/settings', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setAiStatus({ active: data.aiActive !== false, loading: false })
+        } else {
+          setAiStatus({ active: true, loading: false })
+        }
+      } catch {
+        setAiStatus({ active: true, loading: false })
+      }
+    }
+    fetchAIStatus()
+  }, [])
+
+  async function toggleAIStatus() {
+    const token = ApexSession.getToken()
+    if (!token) return
+    
+    setAiStatus(prev => ({ ...prev, loading: true }))
+    
+    try {
+      const newStatus = !aiStatus.active
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ aiActive: newStatus })
+      })
+      
+      if (res.ok) {
+        setAiStatus({ active: newStatus, loading: false })
+      } else {
+        setAiStatus(prev => ({ ...prev, loading: false }))
+      }
+    } catch {
+      setAiStatus(prev => ({ ...prev, loading: false }))
+    }
+  }
 
   // Check if we should show "Add to Home Screen" prompt
   useEffect(() => {
@@ -145,6 +201,58 @@ export default function DashboardPage() {
           {error}
         </div>
       )}
+
+      {/* AI Status Card */}
+      <div className={`card mb-6 animate-fade-in ${aiStatus.active ? 'border-green-500/30' : 'border-orange-500/30'}`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+              aiStatus.active ? 'bg-green-500/20' : 'bg-orange-500/20'
+            }`}>
+              {aiStatus.active ? (
+                <svg className="w-6 h-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              ) : (
+                <svg className="w-6 h-6 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              )}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${aiStatus.active ? 'bg-green-400 animate-pulse' : 'bg-orange-400'}`} />
+                <span className="font-semibold text-lg">
+                  {aiStatus.active ? 'AI Active' : 'AI Paused'}
+                </span>
+              </div>
+              <p className="text-sm text-gray-400">
+                {aiStatus.active 
+                  ? 'Automatically responding to Facebook & Instagram messages' 
+                  : 'AI responses are paused — messages won\'t get automatic replies'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={toggleAIStatus}
+            disabled={aiStatus.loading}
+            className={`px-5 py-2.5 rounded-xl font-medium transition-all ${
+              aiStatus.active
+                ? 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30'
+                : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+            } disabled:opacity-50`}
+          >
+            {aiStatus.loading ? (
+              <span className="flex items-center gap-2">
+                <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+              </span>
+            ) : aiStatus.active ? 'Pause AI' : 'Resume AI'}
+          </button>
+        </div>
+      </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
