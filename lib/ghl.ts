@@ -149,6 +149,73 @@ export async function getContacts(locationId: string, apiKey: string, limit = 20
   }
 }
 
+// Calculate actual average response time from message timestamps
+async function calculateAvgResponseTime(
+  locationId: string, 
+  apiKey: string, 
+  conversationIds: string[]
+): Promise<string> {
+  const responseTimes: number[] = []
+  
+  // Sample up to 10 recent conversations to avoid too many API calls
+  const sampled = conversationIds.slice(0, 10)
+  
+  for (const convId of sampled) {
+    try {
+      const response = await fetch(
+        `${GHL_API_BASE}/conversations/${convId}/messages?locationId=${locationId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Version': GHL_API_VERSION,
+          },
+        }
+      )
+      
+      if (!response.ok) continue
+      
+      const data = await response.json()
+      const messages = data.messages?.messages || []
+      
+      // Sort by date ascending
+      const sorted = [...messages].sort((a: any, b: any) => 
+        new Date(a.dateAdded).getTime() - new Date(b.dateAdded).getTime()
+      )
+      
+      // Find inbound → outbound pairs and calculate response times
+      for (let i = 0; i < sorted.length - 1; i++) {
+        if (sorted[i].direction === 'inbound' && sorted[i + 1].direction === 'outbound') {
+          const inboundTime = new Date(sorted[i].dateAdded).getTime()
+          const outboundTime = new Date(sorted[i + 1].dateAdded).getTime()
+          const responseTime = outboundTime - inboundTime
+          
+          // Only count reasonable response times (< 1 hour, to filter out manual responses)
+          if (responseTime > 0 && responseTime < 3600000) {
+            responseTimes.push(responseTime)
+          }
+        }
+      }
+    } catch (e) {
+      // Skip this conversation if there's an error
+      continue
+    }
+  }
+  
+  if (responseTimes.length === 0) {
+    return '< 1 min'
+  }
+  
+  const avgMs = responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
+  const avgSeconds = Math.round(avgMs / 1000)
+  
+  if (avgSeconds < 60) {
+    return `${avgSeconds} sec`
+  } else {
+    const avgMinutes = Math.round(avgSeconds / 60)
+    return `${avgMinutes} min`
+  }
+}
+
 export async function getDashboardStats(locationId: string, apiKey: string): Promise<DashboardStats> {
   try {
     // Get FB/IG conversations (already filtered in getConversations)
@@ -168,10 +235,17 @@ export async function getDashboardStats(locationId: string, apiKey: string): Pro
 
     // Total conversations all time
     const totalConversations = conversations.length
+    
+    // Calculate actual average response time
+    const avgResponseTime = await calculateAvgResponseTime(
+      locationId, 
+      apiKey, 
+      conversations.map(c => c.id)
+    )
 
     return {
       messagesThisWeek,
-      avgResponseTime: '< 1 min', // AI responses are instant
+      avgResponseTime,
       leadsThisWeek,
       totalConversations,
     }
