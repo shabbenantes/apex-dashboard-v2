@@ -9,7 +9,6 @@ import SetupChecklist from '@/components/SetupChecklist'
 interface Stats {
   messagesThisWeek: number
   avgResponseTime: string
-  leadsThisWeek: number
   totalConversations: number
 }
 
@@ -29,7 +28,6 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<Stats>({
     messagesThisWeek: 0,
     avgResponseTime: '< 1 min',
-    leadsThisWeek: 0,
     totalConversations: 0
   })
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -112,8 +110,8 @@ export default function DashboardPage() {
           <h1 className="font-display text-3xl font-bold mb-2">Welcome back! 👋</h1>
           <p className="text-gray-400">Loading your dashboard...</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {[1, 2, 3, 4].map(i => (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {[1, 2, 3].map(i => (
             <div key={i} className="card animate-pulse">
               <div className="h-4 bg-gray-700 rounded w-1/2 mb-4"></div>
               <div className="h-8 bg-gray-700 rounded w-1/3"></div>
@@ -149,7 +147,7 @@ export default function DashboardPage() {
       )}
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <StatsCard
           title="Messages This Week"
           value={stats.messagesThisWeek}
@@ -164,17 +162,11 @@ export default function DashboardPage() {
           className="animate-fade-in delay-2"
         />
         <StatsCard
-          title="Leads Captured"
-          value={stats.leadsThisWeek}
-          icon="users"
-          className="animate-fade-in delay-3"
-        />
-        <StatsCard
           title="Total Conversations"
           value={stats.totalConversations}
-          icon="chart"
+          icon="users"
           subtitle="All time"
-          className="animate-fade-in"
+          className="animate-fade-in delay-3"
         />
       </div>
 

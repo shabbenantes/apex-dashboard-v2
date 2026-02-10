@@ -30,7 +30,6 @@ export interface Contact {
 export interface DashboardStats {
   messagesThisWeek: number
   avgResponseTime: string
-  leadsThisWeek: number
   totalConversations: number
 }
 
@@ -229,9 +228,6 @@ export async function getDashboardStats(locationId: string, apiKey: string): Pro
     
     // Messages this week - count actual conversations, not estimated
     const messagesThisWeek = recentConvos.length
-    
-    // Leads = unique social media conversations (each FB/IG conversation = 1 lead)
-    const leadsThisWeek = recentConvos.length
 
     // Total conversations all time
     const totalConversations = conversations.length
@@ -246,7 +242,6 @@ export async function getDashboardStats(locationId: string, apiKey: string): Pro
     return {
       messagesThisWeek,
       avgResponseTime,
-      leadsThisWeek,
       totalConversations,
     }
   } catch (error) {
@@ -254,7 +249,6 @@ export async function getDashboardStats(locationId: string, apiKey: string): Pro
     return {
       messagesThisWeek: 0,
       avgResponseTime: '< 1 min',
-      leadsThisWeek: 0,
       totalConversations: 0,
     }
   }
