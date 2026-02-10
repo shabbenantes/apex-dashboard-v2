@@ -151,27 +151,23 @@ export async function getContacts(locationId: string, apiKey: string, limit = 20
 
 export async function getDashboardStats(locationId: string, apiKey: string): Promise<DashboardStats> {
   try {
-    // Get conversations from the past week
+    // Get FB/IG conversations (already filtered in getConversations)
     const oneWeekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000)
     
-    const [conversations, contacts] = await Promise.all([
-      getConversations(locationId, apiKey, 100),
-      getContacts(locationId, apiKey, 100),
-    ])
+    // Only count social media conversations - these ARE your leads
+    const conversations = await getConversations(locationId, apiKey, 100)
 
-    // Count messages this week (approximation based on conversations)
+    // Recent conversations from this week
     const recentConvos = conversations.filter(c => c.lastMessageDate > oneWeekAgo)
-    const messagesThisWeek = recentConvos.length * 3 // Rough estimate: 3 messages per convo
     
-    // Count leads this week
-    const leadsThisWeek = contacts.filter(c => {
-      const addedDate = new Date(c.dateAdded).getTime()
-      return addedDate > oneWeekAgo
-    }).length
+    // Messages this week - count actual conversations, not estimated
+    const messagesThisWeek = recentConvos.length
+    
+    // Leads = unique social media conversations (each FB/IG conversation = 1 lead)
+    const leadsThisWeek = recentConvos.length
 
-    // Calculate conversion rate (leads with appointments / total leads)
-    // For now, use a placeholder since we don't have appointment data
-    const conversionRate = contacts.length > 0 ? '12%' : '--'
+    // Conversion rate placeholder
+    const conversionRate = conversations.length > 0 ? '12%' : '--'
 
     return {
       messagesThisWeek,
