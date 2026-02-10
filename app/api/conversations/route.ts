@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getConversations, formatRelativeTime } from '@/lib/ghl'
+import { formatRelativeTime } from '@/lib/ghl'
 
 // Force dynamic rendering - never cache this route
 export const dynamic = 'force-dynamic'
@@ -45,10 +45,7 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '100')
     const offset = parseInt(searchParams.get('offset') || '0')
 
-    // Fetch directly from GHL to debug the issue
-    console.log(`[conversations route] locationId: ${locationId}, apiKey: ${apiKey?.substring(0, 10)}...`)
-    
-    // Direct GHL call for debugging
+    // Fetch directly from GHL
     const ghlResponse = await fetch(
       `https://services.leadconnectorhq.com/conversations/search?locationId=${locationId}&limit=100`,
       {
@@ -62,7 +59,6 @@ export async function GET(request: Request) {
     
     const ghlData = await ghlResponse.json()
     const rawConversations = ghlData.conversations || []
-    console.log(`[conversations route] Raw from GHL: ${rawConversations.length}`)
     
     // Filter to FB/IG only
     const socialTypes = ['TYPE_FACEBOOK', 'TYPE_INSTAGRAM', 'FB', 'IG', 'FACEBOOK', 'INSTAGRAM']
@@ -82,7 +78,6 @@ export async function GET(request: Request) {
       unreadCount: c.unreadCount || 0,
       type: c.lastMessageType?.replace('TYPE_', '') || 'UNKNOWN',
     }))
-    console.log(`[conversations route] After filter: ${allConversations.length}`)
     
     // Escalation keywords to detect
     const escalationKeywords = [
@@ -126,21 +121,10 @@ export async function GET(request: Request) {
       }
     })
 
-    // Apply pagination (offset/limit) after filtering
+    // Apply pagination (offset/limit)
     const paginated = formatted.slice(offset, offset + limit)
-    console.log(`[conversations route] Returning ${paginated.length} conversations (offset: ${offset}, limit: ${limit})`)
 
-    return NextResponse.json({ 
-      conversations: paginated,
-      _debug: {
-        locationId,
-        apiKeyPrefix: apiKey?.substring(0, 15),
-        rawFromGHL: rawConversations?.length || 0,
-        afterFilter: allConversations.length,
-        formattedCount: formatted.length,
-        paginatedCount: paginated.length,
-      }
-    })
+    return NextResponse.json({ conversations: paginated })
   } catch (error) {
     console.error('Get conversations error:', error)
     return NextResponse.json({ error: 'Failed to load conversations' }, { status: 500 })
