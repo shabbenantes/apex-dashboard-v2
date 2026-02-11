@@ -8,17 +8,16 @@ module.exports = {
     extend: {
       colors: {
         apex: {
-          bg: '#0F0F1A',
+          dark: '#0f172a',
           card: 'rgba(255,255,255,0.03)',
           border: 'rgba(255,255,255,0.08)',
-          purple: '#6366F1',
-          'purple-light': '#8B5CF6',
-          'purple-glow': 'rgba(99,102,241,0.4)',
+          orange: '#f97316',
+          'orange-hover': '#ea580c',
+          'orange-glow': 'rgba(249,115,22,0.3)',
         }
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
-        display: ['Fraunces', 'serif'],
       },
     },
   },

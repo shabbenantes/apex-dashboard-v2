@@ -21,30 +21,27 @@ export default function Sidebar({ businessName }: { businessName: string }) {
   }
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-64 bg-apex-card border-r border-apex-border flex flex-col">
+    <aside className="fixed left-0 top-0 h-screen w-64 bg-[#0f172a] border-r border-white/[0.08] flex flex-col">
       {/* Logo */}
-      <div className="p-6 border-b border-apex-border">
+      <div className="p-6 border-b border-white/[0.08]">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-gradient-to-br from-apex-purple to-apex-purple-light rounded-xl flex items-center justify-center">
-            <span className="text-white font-bold text-lg">A</span>
-          </div>
-          <div>
-            <div className="font-display font-semibold text-lg">Apex</div>
-            <div className="text-xs text-gray-500">Dashboard</div>
+          <span className="text-2xl">⚡</span>
+          <div className="font-bold text-xl">
+            Apex<span className="text-orange-500">Automation</span>
           </div>
         </Link>
       </div>
 
       {/* Business Name */}
-      <div className="px-6 py-4 border-b border-apex-border">
+      <div className="px-6 py-4 border-b border-white/[0.08]">
         <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Business</div>
-        <div className="font-medium text-sm truncate">{businessName}</div>
+        <div className="font-medium text-sm truncate text-white">{businessName}</div>
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1">
         {navItems.map((item) => {
-          const isActive = pathname === item.href
+          const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
           return (
             <Link
               key={item.href}
@@ -59,7 +56,7 @@ export default function Sidebar({ businessName }: { businessName: string }) {
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-apex-border">
+      <div className="p-4 border-t border-white/[0.08]">
         <button
           onClick={handleLogout}
           className="nav-link text-gray-500 hover:text-red-400 w-full"

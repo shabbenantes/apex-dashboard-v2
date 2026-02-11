@@ -12,7 +12,6 @@ interface TrialStatus {
   message?: string
 }
 
-// Channel definitions - simplified for GHL integration reality
 interface ChannelConfig {
   name: string
   icon: React.ReactNode
@@ -86,7 +85,6 @@ export default function ConnectPage() {
   const [trialError, setTrialError] = useState<string | null>(null)
   const previousStatus = useRef<IntegrationStatus | null>(null)
 
-  // Fetch trial status
   async function fetchTrialStatus() {
     const session = ApexSession.get()
     if (!session?.email) return
@@ -104,13 +102,11 @@ export default function ConnectPage() {
     }
   }
 
-  // Register a new connection for trial
   async function registerTrialAccount(platform: string, accountId: string, accountName: string) {
     const session = ApexSession.get()
     if (!session?.email) return
 
     try {
-      // First check if this account was already used
       const checkRes = await fetch(`/api/trial/check?platform=${platform}&accountId=${accountId}`)
       const checkData = await checkRes.json()
 
@@ -119,7 +115,6 @@ export default function ConnectPage() {
         return false
       }
 
-      // Register the account
       const regRes = await fetch('/api/trial/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -138,7 +133,6 @@ export default function ConnectPage() {
         return false
       }
 
-      // Refresh trial status
       await fetchTrialStatus()
       return true
     } catch (err) {
@@ -164,18 +158,14 @@ export default function ConnectPage() {
       if (intRes.ok) {
         const newStatus = await intRes.json()
         
-        // Check for NEW connections (wasn't connected before, now is)
         const prev = previousStatus.current
         if (prev && !trialStatus?.trialStarted) {
-          // Check Facebook
           if (!prev.facebook?.connected && newStatus.facebook?.connected && newStatus.facebook?.pageId) {
             await registerTrialAccount('facebook', newStatus.facebook.pageId, newStatus.facebook.pageName || '')
           }
-          // Check Instagram
           if (!prev.instagram?.connected && newStatus.instagram?.connected && newStatus.instagram?.accountId) {
             await registerTrialAccount('instagram', newStatus.instagram.accountId, newStatus.instagram.handle || '')
           }
-          // Check TikTok
           if (!prev.tiktok?.connected && newStatus.tiktok?.connected && newStatus.tiktok?.accountId) {
             await registerTrialAccount('tiktok', newStatus.tiktok.accountId, newStatus.tiktok.handle || '')
           }
@@ -201,7 +191,6 @@ export default function ConnectPage() {
     fetchTrialStatus()
   }, [])
 
-  // Check if Meta (FB+IG) is connected
   const isMetaConnected = status.facebook?.connected || status.instagram?.connected
 
   const getChannelStatus = (key: ChannelKey): boolean => {
@@ -237,7 +226,7 @@ export default function ConnectPage() {
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold text-lg">{channel.name}</h3>
                 {channel.comingSoon && (
-                  <span className="px-2 py-0.5 bg-apex-purple/20 text-apex-purple text-xs rounded-full font-medium">
+                  <span className="px-2 py-0.5 bg-orange-500/20 text-orange-400 text-xs rounded-full font-medium">
                     Coming Soon
                   </span>
                 )}
@@ -269,15 +258,15 @@ export default function ConnectPage() {
     return (
       <div className="max-w-2xl">
         <div className="mb-8">
-          <h1 className="font-display text-3xl font-bold mb-2">Connections</h1>
+          <h1 className="text-3xl font-bold mb-2">Connections</h1>
           <p className="text-gray-400">Loading...</p>
         </div>
         <div className="card animate-pulse">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-gray-700 rounded-xl"></div>
+            <div className="w-14 h-14 bg-white/10 rounded-xl"></div>
             <div className="flex-1">
-              <div className="h-5 bg-gray-700 rounded w-1/3 mb-2"></div>
-              <div className="h-4 bg-gray-700 rounded w-1/2"></div>
+              <div className="h-5 bg-white/10 rounded w-1/3 mb-2"></div>
+              <div className="h-4 bg-white/10 rounded w-1/2"></div>
             </div>
           </div>
         </div>
@@ -290,19 +279,19 @@ export default function ConnectPage() {
       {/* Connect All Modal */}
       {showConnectModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-apex-card border border-apex-border rounded-2xl p-6 max-w-md w-full animate-fade-in">
+          <div className="bg-[#0f172a] border border-white/[0.08] rounded-2xl p-6 max-w-md w-full animate-fade-in">
             <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-apex-purple/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-3xl">🔗</span>
               </div>
-              <h2 className="font-display text-2xl font-bold mb-2">Connect Your Accounts</h2>
+              <h2 className="text-2xl font-bold mb-2">Connect Your Accounts</h2>
               <p className="text-gray-400">
                 You'll be taken to your account portal where you can connect your Facebook, Instagram, and TikTok accounts.
               </p>
             </div>
 
             {onboarding.ghlCredentials && (
-              <div className="bg-apex-purple/10 border border-apex-purple/20 rounded-xl p-4 mb-6">
+              <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4 mb-6">
                 <p className="text-sm text-gray-300 mb-3">Your portal login:</p>
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
@@ -344,7 +333,7 @@ export default function ConnectPage() {
 
       {/* Header */}
       <div className="mb-8 animate-fade-in">
-        <h1 className="font-display text-3xl font-bold mb-2">Connections</h1>
+        <h1 className="text-3xl font-bold mb-2">Connections</h1>
         <p className="text-gray-400">
           Connect your social accounts to enable AI responses.
         </p>
@@ -357,7 +346,7 @@ export default function ConnectPage() {
             ? 'bg-red-500/10 border-red-500/30'
             : trialStatus.trialStarted
               ? 'bg-green-500/10 border-green-500/30'
-              : 'bg-apex-purple/10 border-apex-purple/30'
+              : 'bg-orange-500/10 border-orange-500/30'
         }`}>
           {trialStatus.expired ? (
             <div className="flex items-center justify-between">
@@ -375,7 +364,7 @@ export default function ConnectPage() {
               <span>Free trial active: <strong>{trialStatus.daysLeft} days left</strong></span>
             </div>
           ) : (
-            <div className="flex items-center gap-2 text-apex-purple-light">
+            <div className="flex items-center gap-2 text-orange-300">
               <span>🎁</span>
               <span>Connect your first account to start your <strong>30-day free trial</strong></span>
             </div>
@@ -402,7 +391,7 @@ export default function ConnectPage() {
       )}
 
       {/* Stats */}
-      <div className="card mb-6 bg-gradient-to-r from-apex-purple/10 to-pink-500/10 border-apex-purple/20">
+      <div className="card mb-6 bg-gradient-to-r from-orange-500/10 to-pink-500/10 border-orange-500/20">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-gray-400 mb-1">Connected Channels</p>
@@ -449,7 +438,7 @@ export default function ConnectPage() {
         <button
           onClick={() => { setChecking(true); fetchStatus(); }}
           disabled={checking}
-          className="text-apex-purple hover:text-apex-purple-light text-sm font-medium flex items-center gap-2"
+          className="text-orange-500 hover:text-orange-400 text-sm font-medium flex items-center gap-2"
         >
           {checking ? (
             <>
@@ -471,7 +460,7 @@ export default function ConnectPage() {
       </div>
 
       {/* Help */}
-      <div className="card bg-apex-purple/5 border-apex-purple/20">
+      <div className="card bg-orange-500/5 border-orange-500/20">
         <div className="flex items-start gap-3">
           <span className="text-2xl">💬</span>
           <div>
@@ -479,7 +468,7 @@ export default function ConnectPage() {
             <p className="text-gray-400 text-sm">
               We're here to help you get set up on all your channels.
             </p>
-            <a href="mailto:support@getapexautomation.com" className="text-apex-purple hover:text-apex-purple-light text-sm font-medium mt-2 inline-block">
+            <a href="mailto:support@getapexautomation.com" className="text-orange-500 hover:text-orange-400 text-sm font-medium mt-2 inline-block">
               Contact Support →
             </a>
           </div>

@@ -68,24 +68,21 @@ export default function ConversationDetailPage() {
     }
   }
 
-  // Initial fetch
   useEffect(() => {
     if (id) {
       fetchConversation(true)
     }
   }, [id])
 
-  // Scroll to bottom when messages change
   useEffect(() => {
     scrollToBottom()
   }, [conversation?.messages])
 
-  // Poll for new messages every 5 seconds
   useEffect(() => {
     if (!id || error) return
     
     const interval = setInterval(() => {
-      fetchConversation(false) // silent refresh
+      fetchConversation(false)
     }, 5000)
     
     return () => clearInterval(interval)
@@ -110,7 +107,6 @@ export default function ConversationDetailPage() {
       
       if (res.ok) {
         const data = await res.json()
-        // Add message to local state immediately for instant feedback
         if (data.message && conversation) {
           setConversation({
             ...conversation,
@@ -167,10 +163,10 @@ export default function ConversationDetailPage() {
           </Link>
         </div>
         <div className="card animate-pulse">
-          <div className="h-8 bg-gray-700 rounded w-1/3 mb-4"></div>
+          <div className="h-8 bg-white/10 rounded w-1/3 mb-4"></div>
           <div className="space-y-4">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-16 bg-gray-700 rounded"></div>
+              <div key={i} className="h-16 bg-white/10 rounded"></div>
             ))}
           </div>
         </div>
@@ -219,13 +215,13 @@ export default function ConversationDetailPage() {
       {/* Contact Header */}
       <div className="card mb-4 animate-fade-in flex-shrink-0">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-apex-purple/30 to-apex-purple-light/30 flex items-center justify-center flex-shrink-0">
-            <span className="text-lg font-medium text-apex-purple">
+          <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
+            <span className="text-lg font-medium text-gray-300">
               {conversation.contactName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
             </span>
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="font-display text-xl font-bold truncate">{conversation.contactName}</h1>
+            <h1 className="text-xl font-bold truncate">{conversation.contactName}</h1>
             <div className="flex items-center gap-3 text-sm text-gray-400 mt-0.5">
               {conversation.contactPhone && (
                 <span className="truncate">{conversation.contactPhone}</span>
@@ -253,7 +249,7 @@ export default function ConversationDetailPage() {
                 >
                   <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
                     message.direction === 'outbound' 
-                      ? 'bg-apex-purple text-white rounded-br-md' 
+                      ? 'bg-orange-500 text-white rounded-br-md' 
                       : 'bg-white/10 text-gray-200 rounded-bl-md'
                   }`}>
                     <p className="whitespace-pre-wrap break-words text-[15px]">{message.body}</p>
@@ -273,9 +269,9 @@ export default function ConversationDetailPage() {
         </div>
 
         {/* Message Composer */}
-        <div className="border-t border-apex-border pt-4 mt-4 flex-shrink-0">
+        <div className="border-t border-white/[0.08] pt-4 mt-4 flex-shrink-0">
           {sendError && (
-            <div className="mb-3 p-2 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+            <div className="mb-3 p-2 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">
               {sendError}
             </div>
           )}
@@ -288,13 +284,13 @@ export default function ConversationDetailPage() {
               placeholder="Type a message..."
               disabled={sending}
               rows={1}
-              className="flex-1 bg-white/5 border border-apex-border rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-apex-purple/50 focus:border-apex-purple resize-none disabled:opacity-50"
+              className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 resize-none disabled:opacity-50 transition-all"
               style={{ minHeight: '48px', maxHeight: '120px' }}
             />
             <button
               onClick={handleSend}
               disabled={!newMessage.trim() || sending}
-              className="px-5 py-3 bg-apex-purple hover:bg-apex-purple-light text-white font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-5 py-3 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {sending ? (
                 <>

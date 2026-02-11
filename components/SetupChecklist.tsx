@@ -110,10 +110,10 @@ export default function SetupChecklist({ onComplete }: SetupChecklistProps) {
   if (loading) {
     return (
       <div className="card animate-pulse mb-6">
-        <div className="h-6 bg-gray-700 rounded w-1/2 mb-4"></div>
+        <div className="h-6 bg-white/10 rounded w-1/2 mb-4"></div>
         <div className="space-y-3">
           {[1, 2].map(i => (
-            <div key={i} className="h-12 bg-gray-700 rounded"></div>
+            <div key={i} className="h-12 bg-white/10 rounded"></div>
           ))}
         </div>
       </div>
@@ -122,14 +122,11 @@ export default function SetupChecklist({ onComplete }: SetupChecklistProps) {
 
   if (!status) return null
 
-  // Check if accounts are connected (FB or IG counts as "connected")
   const accountsConnected = status.steps.facebookConnected || status.steps.instagramConnected
-
-  // Check if all steps complete
   const allComplete = accountsConnected && status.steps.settingsReviewed
 
   if (status.completedAt || allComplete) {
-    return null // Hide checklist when complete
+    return null
   }
 
   const steps = [
@@ -166,7 +163,7 @@ export default function SetupChecklist({ onComplete }: SetupChecklistProps) {
             ? 'bg-red-500/10 border-red-500/30 text-red-300'
             : trialStatus.trialStarted
               ? 'bg-green-500/10 border-green-500/30 text-green-300'
-              : 'bg-apex-purple/10 border-apex-purple/30 text-apex-purple-light'
+              : 'bg-orange-500/10 border-orange-500/30 text-orange-300'
         }`}>
           {trialStatus.expired ? (
             <div className="flex items-center justify-between">
@@ -192,19 +189,19 @@ export default function SetupChecklist({ onComplete }: SetupChecklistProps) {
         </div>
       )}
 
-      <div className="card mb-6 animate-fade-in border-apex-purple/30 bg-gradient-to-br from-apex-purple/5 to-transparent">
+      <div className="card mb-6 animate-fade-in border-orange-500/30 bg-gradient-to-br from-orange-500/5 to-transparent">
         <div className="flex items-center gap-3 mb-4">
           <span className="text-2xl">🚀</span>
           <div>
-            <h2 className="font-display text-xl font-semibold">Complete Your Setup</h2>
+            <h2 className="text-xl font-semibold">Complete Your Setup</h2>
             <p className="text-gray-400 text-sm">{completedCount} of {steps.length} steps complete</p>
           </div>
         </div>
 
         {/* Progress bar */}
-        <div className="w-full bg-gray-700 rounded-full h-2 mb-6">
+        <div className="w-full bg-white/10 rounded-full h-2 mb-6">
           <div 
-            className="bg-gradient-to-r from-apex-purple to-apex-purple-light h-2 rounded-full transition-all duration-500"
+            className="bg-gradient-to-r from-orange-500 to-orange-400 h-2 rounded-full transition-all duration-500"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
@@ -217,12 +214,12 @@ export default function SetupChecklist({ onComplete }: SetupChecklistProps) {
               className={`flex items-center gap-4 p-4 rounded-xl transition-all ${
                 step.completed 
                   ? 'bg-green-500/10 border border-green-500/20' 
-                  : 'bg-white/5 border border-apex-border hover:border-apex-purple/50 cursor-pointer'
+                  : 'bg-white/5 border border-white/[0.08] hover:border-orange-500/50 cursor-pointer'
               }`}
               onClick={!step.completed ? step.action : undefined}
             >
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                step.completed ? 'bg-green-500/20' : 'bg-apex-purple/20'
+                step.completed ? 'bg-green-500/20' : 'bg-orange-500/20'
               }`}>
                 {step.completed ? (
                   <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -248,10 +245,10 @@ export default function SetupChecklist({ onComplete }: SetupChecklistProps) {
         </div>
 
         {/* Help link */}
-        <div className="mt-6 pt-4 border-t border-apex-border">
+        <div className="mt-6 pt-4 border-t border-white/[0.08]">
           <p className="text-gray-500 text-sm">
             Having trouble?{' '}
-            <a href="mailto:support@getapexautomation.com" className="text-apex-purple hover:text-apex-purple-light">
+            <a href="mailto:support@getapexautomation.com" className="text-orange-500 hover:text-orange-400">
               Contact support
             </a>
           </p>
@@ -261,12 +258,12 @@ export default function SetupChecklist({ onComplete }: SetupChecklistProps) {
       {/* Connect Modal */}
       {showConnectModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-apex-card border border-apex-border rounded-2xl p-6 max-w-md w-full animate-fade-in">
+          <div className="bg-[#0f172a] border border-white/[0.08] rounded-2xl p-6 max-w-md w-full animate-fade-in">
             <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-apex-purple/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-3xl">🔗</span>
               </div>
-              <h2 className="font-display text-2xl font-bold mb-2">Connect Your Accounts</h2>
+              <h2 className="text-2xl font-bold mb-2">Connect Your Accounts</h2>
               <p className="text-gray-400">
                 {trialStatus?.trialStarted 
                   ? "You'll be taken to your account portal to connect Facebook, Instagram, or TikTok."
@@ -285,7 +282,7 @@ export default function SetupChecklist({ onComplete }: SetupChecklistProps) {
             )}
 
             {status?.ghlCredentials && (
-              <div className="bg-apex-purple/10 border border-apex-purple/20 rounded-xl p-4 mb-6">
+              <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4 mb-6">
                 <p className="text-sm text-gray-300 mb-3">Your portal login:</p>
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
