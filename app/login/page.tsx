@@ -89,7 +89,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-8 animate-fade-in">
           <h1 className="font-display text-3xl font-bold">
-            Apex<span className="text-apex-purple">Dashboard</span>
+            Apex<span className="text-apex-orange">Automation</span>
           </h1>
           <p className="text-gray-400 mt-2">Manage your AI messaging assistant</p>
         </div>
@@ -150,7 +150,7 @@ export default function LoginPage() {
             {!isPWA && (
               <button
                 onClick={() => setShowCodeInput(!showCodeInput)}
-                className="text-apex-purple hover:text-apex-purple-light text-xs mt-4 w-full text-center"
+                className="text-apex-orange hover:text-apex-orange-hover text-xs mt-4 w-full text-center"
               >
                 {showCodeInput ? 'Use magic link instead' : 'Use login code instead'}
               </button>
@@ -159,8 +159,8 @@ export default function LoginPage() {
         ) : (
           <div className="card animate-fade-in">
             <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-apex-purple/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-apex-purple" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-16 h-16 bg-apex-orange/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-apex-orange" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               </div>
@@ -212,7 +212,7 @@ export default function LoginPage() {
 
             <button
               onClick={() => { setSent(false); setError(''); setCode(''); }}
-              className="text-apex-purple hover:text-apex-purple-light mt-4 text-sm w-full text-center"
+              className="text-apex-orange hover:text-apex-orange-hover mt-4 text-sm w-full text-center"
             >
               Use a different email
             </button>
@@ -220,7 +220,7 @@ export default function LoginPage() {
         )}
 
         <p className="text-center text-gray-600 text-sm mt-8">
-          Need help? <a href="mailto:support@getapexautomation.com" className="text-apex-purple hover:underline">Contact support</a>
+          Need help? <a href="mailto:support@getapexautomation.com" className="text-apex-orange hover:underline">Contact support</a>
         </p>
       </div>
     </div>

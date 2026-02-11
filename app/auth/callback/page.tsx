@@ -64,7 +64,7 @@ function AuthCallbackContent() {
     <div className="text-center">
       {status === 'verifying' && (
         <>
-          <div className="w-10 h-10 border-3 border-apex-purple border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-10 h-10 border-3 border-apex-orange border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-white text-lg">Signing you in...</p>
         </>
       )}
@@ -91,7 +91,7 @@ function AuthCallbackContent() {
           <p className="text-gray-400 mb-4">{error}</p>
           <a 
             href="/login" 
-            className="text-apex-purple hover:underline"
+            className="text-apex-orange hover:underline"
           >
             Try again
           </a>
@@ -104,7 +104,7 @@ function AuthCallbackContent() {
 function LoadingSpinner() {
   return (
     <div className="text-center">
-      <div className="w-10 h-10 border-3 border-apex-purple border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+      <div className="w-10 h-10 border-3 border-apex-orange border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
       <p className="text-white text-lg">Loading...</p>
     </div>
   )
