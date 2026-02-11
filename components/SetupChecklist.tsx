@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { ApexSession } from '@/lib/session'
-import ConnectFacebookModal from './ConnectFacebookModal'
 
 interface OnboardingStatus {
   completedAt: string | null
@@ -27,10 +26,7 @@ interface SetupChecklistProps {
 export default function SetupChecklist({ onComplete }: SetupChecklistProps) {
   const [status, setStatus] = useState<OnboardingStatus | null>(null)
   const [loading, setLoading] = useState(true)
-  const [showFacebookModal, setShowFacebookModal] = useState(false)
-  const [showInstagramModal, setShowInstagramModal] = useState(false)
-  const [verifying, setVerifying] = useState<string | null>(null)
-  const [verifyError, setVerifyError] = useState<string | null>(null)
+  const [showConnectModal, setShowConnectModal] = useState(false)
 
   useEffect(() => {
     fetchStatus()
@@ -59,36 +55,6 @@ export default function SetupChecklist({ onComplete }: SetupChecklistProps) {
     }
   }
 
-  const verifyConnection = async (type: 'facebook' | 'instagram') => {
-    setVerifying(type)
-    setVerifyError(null)
-    const token = ApexSession.getToken()
-    
-    try {
-      const res = await fetch(`/api/onboarding/verify-${type}`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-      })
-      
-      const data = await res.json()
-      
-      if (data.connected) {
-        // Success! Close modal and refresh status
-        await fetchStatus()
-        setShowFacebookModal(false)
-        setShowInstagramModal(false)
-      } else {
-        // Not connected yet - show error in modal
-        setVerifyError(data.message || `${type === 'facebook' ? 'Facebook' : 'Instagram'} connection not detected. Please complete all steps and try again.`)
-      }
-    } catch (err) {
-      console.error(`Failed to verify ${type}:`, err)
-      setVerifyError('Verification failed. Please try again.')
-    } finally {
-      setVerifying(null)
-    }
-  }
-
   const markSettingsReviewed = async () => {
     const token = ApexSession.getToken()
     try {
@@ -106,12 +72,18 @@ export default function SetupChecklist({ onComplete }: SetupChecklistProps) {
     }
   }
 
+  const openGHLPortal = () => {
+    if (status?.ghlPortalUrl) {
+      window.open(status.ghlPortalUrl, '_blank')
+    }
+  }
+
   if (loading) {
     return (
-      <div className="card animate-pulse">
+      <div className="card animate-pulse mb-6">
         <div className="h-6 bg-gray-700 rounded w-1/2 mb-4"></div>
         <div className="space-y-3">
-          {[1, 2, 3, 4].map(i => (
+          {[1, 2].map(i => (
             <div key={i} className="h-12 bg-gray-700 rounded"></div>
           ))}
         </div>
@@ -121,10 +93,11 @@ export default function SetupChecklist({ onComplete }: SetupChecklistProps) {
 
   if (!status) return null
 
+  // Check if accounts are connected (FB or IG counts as "connected")
+  const accountsConnected = status.steps.facebookConnected || status.steps.instagramConnected
+
   // Check if all steps complete
-  const allComplete = status.steps.facebookConnected && 
-                      status.steps.instagramConnected && 
-                      status.steps.settingsReviewed
+  const allComplete = accountsConnected && status.steps.settingsReviewed
 
   if (status.completedAt || allComplete) {
     return null // Hide checklist when complete
@@ -132,25 +105,17 @@ export default function SetupChecklist({ onComplete }: SetupChecklistProps) {
 
   const steps = [
     {
-      id: 'facebook',
-      label: 'Connect Facebook Messenger',
-      description: 'Receive and respond to Facebook messages',
-      completed: status.steps.facebookConnected,
-      action: () => setShowFacebookModal(true),
-      icon: '📘',
-    },
-    {
-      id: 'instagram',
-      label: 'Connect Instagram DMs',
-      description: 'Receive and respond to Instagram messages',
-      completed: status.steps.instagramConnected,
-      action: () => setShowInstagramModal(true),
-      icon: '📸',
+      id: 'accounts',
+      label: 'Connect Your Accounts',
+      description: 'Connect Facebook, Instagram, and TikTok',
+      completed: accountsConnected,
+      action: () => setShowConnectModal(true),
+      icon: '🔗',
     },
     {
       id: 'settings',
-      label: 'Review AI Settings',
-      description: 'Configure your AI assistant\'s behavior',
+      label: 'Configure AI',
+      description: 'Review and customize your AI assistant',
       completed: status.steps.settingsReviewed,
       action: () => window.location.href = '/settings',
       actionAfter: markSettingsReviewed,
@@ -229,30 +194,59 @@ export default function SetupChecklist({ onComplete }: SetupChecklistProps) {
         </div>
       </div>
 
-      {/* Facebook Modal */}
-      {showFacebookModal && (
-        <ConnectFacebookModal
-          platform="facebook"
-          portalUrl={status.ghlPortalUrl}
-          credentials={status.ghlCredentials}
-          onClose={() => { setShowFacebookModal(false); setVerifyError(null); }}
-          onVerify={() => verifyConnection('facebook')}
-          verifying={verifying === 'facebook'}
-          error={verifyError}
-        />
-      )}
+      {/* Connect Modal */}
+      {showConnectModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-apex-card border border-apex-border rounded-2xl p-6 max-w-md w-full animate-fade-in">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-apex-purple/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-3xl">🔗</span>
+              </div>
+              <h2 className="font-display text-2xl font-bold mb-2">Connect Your Accounts</h2>
+              <p className="text-gray-400">
+                You'll be taken to your account portal where you can connect your Facebook, Instagram, and TikTok accounts.
+              </p>
+            </div>
 
-      {/* Instagram Modal */}
-      {showInstagramModal && (
-        <ConnectFacebookModal
-          platform="instagram"
-          portalUrl={status.ghlPortalUrl}
-          credentials={status.ghlCredentials}
-          onClose={() => { setShowInstagramModal(false); setVerifyError(null); }}
-          onVerify={() => verifyConnection('instagram')}
-          verifying={verifying === 'instagram'}
-          error={verifyError}
-        />
+            {status?.ghlCredentials && (
+              <div className="bg-apex-purple/10 border border-apex-purple/20 rounded-xl p-4 mb-6">
+                <p className="text-sm text-gray-300 mb-3">Your portal login:</p>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400 text-sm">Email:</span>
+                    <span className="text-white font-mono text-sm">{status.ghlCredentials.email}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400 text-sm">Password:</span>
+                    <span className="text-white font-mono text-sm">{status.ghlCredentials.password}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <button
+                onClick={() => {
+                  openGHLPortal()
+                  setShowConnectModal(false)
+                }}
+                className="btn-primary w-full py-3"
+              >
+                Open Account Portal →
+              </button>
+              <button
+                onClick={() => setShowConnectModal(false)}
+                className="w-full py-3 text-gray-400 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+
+            <p className="text-center text-gray-500 text-xs mt-4">
+              After connecting, refresh the dashboard to see your status
+            </p>
+          </div>
+        </div>
       )}
     </>
   )
