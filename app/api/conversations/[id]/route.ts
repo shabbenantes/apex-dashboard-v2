@@ -4,6 +4,22 @@ const GHL_API_BASE = 'https://services.leadconnectorhq.com'
 const GHL_API_VERSION = '2021-07-28'
 const API_URL = process.env.DASHBOARD_API_URL || 'https://apex-dashboard-api-5r3u.onrender.com'
 
+// Helper to verify token and get customer data
+async function getCustomerFromToken(token: string) {
+  const verifyRes = await fetch(`${API_URL}/auth/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token }),
+  })
+
+  if (!verifyRes.ok) {
+    return null
+  }
+
+  const verifyData = await verifyRes.json()
+  return verifyData.customer
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -119,6 +135,89 @@ export async function GET(
     })
   } catch (error) {
     console.error('Failed to fetch conversation:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+// POST - Send a message in this conversation
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params
+  
+  // Get token from Authorization header
+  const authHeader = request.headers.get('Authorization')
+  const token = authHeader?.replace('Bearer ', '')
+
+  if (!token) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  try {
+    // Parse request body
+    const body = await request.json()
+    const { message } = body
+
+    if (!message || typeof message !== 'string' || message.trim().length === 0) {
+      return NextResponse.json({ error: 'Message is required' }, { status: 400 })
+    }
+
+    // Verify token and get customer data
+    const customer = await getCustomerFromToken(token)
+    
+    if (!customer) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
+    }
+    
+    const apiKey = customer.ghlApiKey || customer.apiKey
+
+    if (!apiKey) {
+      return NextResponse.json({ error: 'GHL not configured' }, { status: 400 })
+    }
+
+    // Send message via GHL Conversations API
+    const sendRes = await fetch(
+      `${GHL_API_BASE}/conversations/messages`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Version': GHL_API_VERSION,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'Custom',
+          conversationId: id,
+          message: message.trim(),
+        }),
+      }
+    )
+
+    if (!sendRes.ok) {
+      const errorData = await sendRes.json().catch(() => ({}))
+      console.error('GHL send message error:', sendRes.status, errorData)
+      return NextResponse.json({ 
+        error: 'Failed to send message',
+        details: errorData 
+      }, { status: 500 })
+    }
+
+    const sendData = await sendRes.json()
+
+    return NextResponse.json({
+      success: true,
+      messageId: sendData.messageId || sendData.id,
+      message: {
+        id: sendData.messageId || sendData.id,
+        body: message.trim(),
+        direction: 'outbound',
+        dateAdded: Date.now(),
+        type: 'Custom',
+      }
+    })
+  } catch (error) {
+    console.error('Failed to send message:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import { ApexSession } from '@/lib/session'
 import Link from 'next/link'
@@ -29,38 +29,114 @@ export default function ConversationDetailPage() {
   const [conversation, setConversation] = useState<ConversationDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [newMessage, setNewMessage] = useState('')
+  const [sending, setSending] = useState(false)
+  const [sendError, setSendError] = useState<string | null>(null)
+  
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
 
-  useEffect(() => {
-    async function fetchConversation() {
-      try {
-        const token = ApexSession.getToken()
-        const res = await fetch(`/api/conversations/${id}`, { 
-          cache: 'no-store',
-          headers: { 
-            'Cache-Control': 'no-cache',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-          },
-        })
-        if (res.ok) {
-          const data = await res.json()
-          setConversation(data)
-          setError(null)
-        } else if (res.status === 404) {
-          setError('Conversation not found')
-        } else {
-          setError('Failed to load conversation')
-        }
-      } catch (err) {
-        console.error('Failed to fetch conversation:', err)
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  async function fetchConversation(showLoading = true) {
+    try {
+      if (showLoading) setLoading(true)
+      const token = ApexSession.getToken()
+      const res = await fetch(`/api/conversations/${id}`, { 
+        cache: 'no-store',
+        headers: { 
+          'Cache-Control': 'no-cache',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setConversation(data)
+        setError(null)
+      } else if (res.status === 404) {
+        setError('Conversation not found')
+      } else {
         setError('Failed to load conversation')
-      } finally {
-        setLoading(false)
       }
+    } catch (err) {
+      console.error('Failed to fetch conversation:', err)
+      setError('Failed to load conversation')
+    } finally {
+      setLoading(false)
     }
+  }
+
+  // Initial fetch
+  useEffect(() => {
     if (id) {
-      fetchConversation()
+      fetchConversation(true)
     }
   }, [id])
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    scrollToBottom()
+  }, [conversation?.messages])
+
+  // Poll for new messages every 5 seconds
+  useEffect(() => {
+    if (!id || error) return
+    
+    const interval = setInterval(() => {
+      fetchConversation(false) // silent refresh
+    }, 5000)
+    
+    return () => clearInterval(interval)
+  }, [id, error])
+
+  async function handleSend() {
+    if (!newMessage.trim() || sending) return
+    
+    setSending(true)
+    setSendError(null)
+    
+    try {
+      const token = ApexSession.getToken()
+      const res = await fetch(`/api/conversations/${id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ message: newMessage.trim() })
+      })
+      
+      if (res.ok) {
+        const data = await res.json()
+        // Add message to local state immediately for instant feedback
+        if (data.message && conversation) {
+          setConversation({
+            ...conversation,
+            messages: [...conversation.messages, data.message]
+          })
+        }
+        setNewMessage('')
+        inputRef.current?.focus()
+      } else {
+        const errorData = await res.json().catch(() => ({}))
+        setSendError(errorData.error || 'Failed to send message')
+      }
+    } catch (err) {
+      console.error('Failed to send message:', err)
+      setSendError('Failed to send message')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSend()
+    }
+  }
 
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp)
@@ -129,9 +205,9 @@ export default function ConversationDetailPage() {
   }
 
   return (
-    <div className="max-w-4xl">
+    <div className="max-w-4xl h-[calc(100vh-120px)] flex flex-col">
       {/* Back Link */}
-      <div className="mb-6 animate-fade-in">
+      <div className="mb-4 animate-fade-in flex-shrink-0">
         <Link href="/conversations" className="text-gray-400 hover:text-white transition-colors inline-flex items-center gap-2">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -141,33 +217,20 @@ export default function ConversationDetailPage() {
       </div>
 
       {/* Contact Header */}
-      <div className="card mb-6 animate-fade-in">
+      <div className="card mb-4 animate-fade-in flex-shrink-0">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-apex-purple/30 to-apex-purple-light/30 flex items-center justify-center flex-shrink-0">
-            <span className="text-2xl font-medium text-apex-purple">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-apex-purple/30 to-apex-purple-light/30 flex items-center justify-center flex-shrink-0">
+            <span className="text-lg font-medium text-apex-purple">
               {conversation.contactName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
             </span>
           </div>
-          <div>
-            <h1 className="font-display text-2xl font-bold">{conversation.contactName}</h1>
-            <div className="flex items-center gap-4 text-sm text-gray-400 mt-1">
+          <div className="flex-1 min-w-0">
+            <h1 className="font-display text-xl font-bold truncate">{conversation.contactName}</h1>
+            <div className="flex items-center gap-3 text-sm text-gray-400 mt-0.5">
               {conversation.contactPhone && (
-                <span className="flex items-center gap-1">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                  </svg>
-                  {conversation.contactPhone}
-                </span>
+                <span className="truncate">{conversation.contactPhone}</span>
               )}
-              {conversation.contactEmail && (
-                <span className="flex items-center gap-1">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                  {conversation.contactEmail}
-                </span>
-              )}
-              <span className="px-2 py-0.5 bg-white/10 rounded text-xs">
+              <span className="px-2 py-0.5 bg-white/10 rounded text-xs flex-shrink-0">
                 {conversation.type.replace('TYPE_', '')}
               </span>
             </div>
@@ -175,42 +238,87 @@ export default function ConversationDetailPage() {
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="card animate-fade-in delay-1">
-        <h2 className="font-display text-lg font-semibold mb-4">Messages</h2>
-        
-        {conversation.messages.length === 0 ? (
-          <p className="text-gray-400 text-center py-8">No messages in this conversation yet.</p>
-        ) : (
-          <div className="space-y-4">
-            {conversation.messages.map((message) => (
-              <div 
-                key={message.id}
-                className={`flex ${message.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                  message.direction === 'outbound' 
-                    ? 'bg-apex-purple text-white rounded-br-md' 
-                    : 'bg-white/10 text-gray-200 rounded-bl-md'
-                }`}>
-                  <p className="whitespace-pre-wrap break-words">{message.body}</p>
-                  <p className={`text-xs mt-1 ${
-                    message.direction === 'outbound' ? 'text-white/60' : 'text-gray-500'
+      {/* Messages Container */}
+      <div className="card flex-1 flex flex-col min-h-0 animate-fade-in delay-1">
+        {/* Messages Scroll Area */}
+        <div className="flex-1 overflow-y-auto px-1 -mx-1">
+          {conversation.messages.length === 0 ? (
+            <p className="text-gray-400 text-center py-8">No messages in this conversation yet.</p>
+          ) : (
+            <div className="space-y-3 py-2">
+              {conversation.messages.map((message) => (
+                <div 
+                  key={message.id}
+                  className={`flex ${message.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
+                    message.direction === 'outbound' 
+                      ? 'bg-apex-purple text-white rounded-br-md' 
+                      : 'bg-white/10 text-gray-200 rounded-bl-md'
                   }`}>
-                    {formatTime(message.dateAdded)}
-                    {message.direction === 'outbound' && ' • AI'}
-                  </p>
+                    <p className="whitespace-pre-wrap break-words text-[15px]">{message.body}</p>
+                    <p className={`text-xs mt-1 ${
+                      message.direction === 'outbound' ? 'text-white/60' : 'text-gray-500'
+                    }`}>
+                      {formatTime(message.dateAdded)}
+                      {message.direction === 'outbound' && message.type !== 'Custom' && ' • 🤖 AI'}
+                      {message.direction === 'outbound' && message.type === 'Custom' && ' • You'}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+          )}
+        </div>
 
-      {/* Note about read-only */}
-      <p className="text-center text-gray-600 text-sm mt-6">
-        💡 Messages shown are handled by your AI assistant. Replies are sent automatically.
-      </p>
+        {/* Message Composer */}
+        <div className="border-t border-apex-border pt-4 mt-4 flex-shrink-0">
+          {sendError && (
+            <div className="mb-3 p-2 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+              {sendError}
+            </div>
+          )}
+          <div className="flex gap-3">
+            <textarea
+              ref={inputRef}
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Type a message..."
+              disabled={sending}
+              rows={1}
+              className="flex-1 bg-white/5 border border-apex-border rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-apex-purple/50 focus:border-apex-purple resize-none disabled:opacity-50"
+              style={{ minHeight: '48px', maxHeight: '120px' }}
+            />
+            <button
+              onClick={handleSend}
+              disabled={!newMessage.trim() || sending}
+              className="px-5 py-3 bg-apex-purple hover:bg-apex-purple-light text-white font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {sending ? (
+                <>
+                  <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  <span>Sending</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  </svg>
+                  <span>Send</span>
+                </>
+              )}
+            </button>
+          </div>
+          <p className="text-xs text-gray-500 mt-2">
+            Press Enter to send • Shift+Enter for new line
+          </p>
+        </div>
+      </div>
     </div>
   )
 }
