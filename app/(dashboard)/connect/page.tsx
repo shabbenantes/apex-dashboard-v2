@@ -1,7 +1,16 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { ApexSession } from '@/lib/session'
+
+interface TrialStatus {
+  trialStarted: boolean
+  trialStartedAt?: number
+  trialEndsAt?: number
+  daysLeft?: number
+  expired?: boolean
+  message?: string
+}
 
 // Channel definitions - simplified for GHL integration reality
 interface ChannelConfig {
@@ -70,9 +79,73 @@ export default function ConnectPage() {
     tiktok: { connected: false },
   })
   const [onboarding, setOnboarding] = useState<OnboardingStatus>({})
+  const [trialStatus, setTrialStatus] = useState<TrialStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [checking, setChecking] = useState(false)
   const [showConnectModal, setShowConnectModal] = useState(false)
+  const [trialError, setTrialError] = useState<string | null>(null)
+  const previousStatus = useRef<IntegrationStatus | null>(null)
+
+  // Fetch trial status
+  async function fetchTrialStatus() {
+    const session = ApexSession.get()
+    if (!session?.email) return
+
+    try {
+      const res = await fetch(`/api/trial/status?email=${encodeURIComponent(session.email)}`, {
+        cache: 'no-store',
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setTrialStatus(data)
+      }
+    } catch (err) {
+      console.error('Failed to fetch trial status:', err)
+    }
+  }
+
+  // Register a new connection for trial
+  async function registerTrialAccount(platform: string, accountId: string, accountName: string) {
+    const session = ApexSession.get()
+    if (!session?.email) return
+
+    try {
+      // First check if this account was already used
+      const checkRes = await fetch(`/api/trial/check?platform=${platform}&accountId=${accountId}`)
+      const checkData = await checkRes.json()
+
+      if (!checkData.available) {
+        setTrialError(checkData.message || 'This account has already been used for a free trial.')
+        return false
+      }
+
+      // Register the account
+      const regRes = await fetch('/api/trial/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          platform,
+          accountId,
+          accountName,
+          email: session.email,
+          locationId: session.locationId,
+        }),
+      })
+
+      if (!regRes.ok) {
+        const errData = await regRes.json()
+        setTrialError(errData.error || 'Failed to start trial')
+        return false
+      }
+
+      // Refresh trial status
+      await fetchTrialStatus()
+      return true
+    } catch (err) {
+      console.error('Failed to register trial:', err)
+      return false
+    }
+  }
 
   async function fetchStatus() {
     try {
@@ -89,8 +162,27 @@ export default function ConnectPage() {
       ])
       
       if (intRes.ok) {
-        const data = await intRes.json()
-        setStatus(prev => ({ ...prev, ...data }))
+        const newStatus = await intRes.json()
+        
+        // Check for NEW connections (wasn't connected before, now is)
+        const prev = previousStatus.current
+        if (prev && !trialStatus?.trialStarted) {
+          // Check Facebook
+          if (!prev.facebook?.connected && newStatus.facebook?.connected && newStatus.facebook?.pageId) {
+            await registerTrialAccount('facebook', newStatus.facebook.pageId, newStatus.facebook.pageName || '')
+          }
+          // Check Instagram
+          if (!prev.instagram?.connected && newStatus.instagram?.connected && newStatus.instagram?.accountId) {
+            await registerTrialAccount('instagram', newStatus.instagram.accountId, newStatus.instagram.handle || '')
+          }
+          // Check TikTok
+          if (!prev.tiktok?.connected && newStatus.tiktok?.connected && newStatus.tiktok?.accountId) {
+            await registerTrialAccount('tiktok', newStatus.tiktok.accountId, newStatus.tiktok.handle || '')
+          }
+        }
+        
+        previousStatus.current = newStatus
+        setStatus(newStatus)
       }
       if (onboardRes.ok) {
         const data = await onboardRes.json()
@@ -106,6 +198,7 @@ export default function ConnectPage() {
 
   useEffect(() => {
     fetchStatus()
+    fetchTrialStatus()
   }, [])
 
   // Check if Meta (FB+IG) is connected
@@ -256,6 +349,57 @@ export default function ConnectPage() {
           Connect your social accounts to enable AI responses.
         </p>
       </div>
+
+      {/* Trial Status Banner */}
+      {trialStatus && (
+        <div className={`mb-6 p-4 rounded-xl border ${
+          trialStatus.expired 
+            ? 'bg-red-500/10 border-red-500/30'
+            : trialStatus.trialStarted
+              ? 'bg-green-500/10 border-green-500/30'
+              : 'bg-apex-purple/10 border-apex-purple/30'
+        }`}>
+          {trialStatus.expired ? (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-red-300">
+                <span>⏰</span>
+                <span>Your free trial has ended</span>
+              </div>
+              <a href="/billing" className="text-sm text-red-300 underline hover:no-underline">
+                Upgrade to continue →
+              </a>
+            </div>
+          ) : trialStatus.trialStarted ? (
+            <div className="flex items-center gap-2 text-green-300">
+              <span>✨</span>
+              <span>Free trial active: <strong>{trialStatus.daysLeft} days left</strong></span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-apex-purple-light">
+              <span>🎁</span>
+              <span>Connect your first account to start your <strong>30-day free trial</strong></span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Trial Error */}
+      {trialError && (
+        <div className="mb-6 p-4 rounded-xl border bg-red-500/10 border-red-500/30">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-red-300">
+              <span>⚠️</span>
+              <span>{trialError}</span>
+            </div>
+            <button 
+              onClick={() => setTrialError(null)}
+              className="text-red-300 hover:text-white"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="card mb-6 bg-gradient-to-r from-apex-purple/10 to-pink-500/10 border-apex-purple/20">

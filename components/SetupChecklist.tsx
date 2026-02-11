@@ -19,17 +19,29 @@ interface OnboardingStatus {
   }
 }
 
+interface TrialStatus {
+  trialStarted: boolean
+  trialStartedAt?: number
+  trialEndsAt?: number
+  daysLeft?: number
+  expired?: boolean
+  connectedAccounts?: { platform: string; accountId: string; accountName: string }[]
+  message?: string
+}
+
 interface SetupChecklistProps {
   onComplete?: () => void
 }
 
 export default function SetupChecklist({ onComplete }: SetupChecklistProps) {
   const [status, setStatus] = useState<OnboardingStatus | null>(null)
+  const [trialStatus, setTrialStatus] = useState<TrialStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [showConnectModal, setShowConnectModal] = useState(false)
 
   useEffect(() => {
     fetchStatus()
+    fetchTrialStatus()
   }, [])
 
   const fetchStatus = async () => {
@@ -52,6 +64,23 @@ export default function SetupChecklist({ onComplete }: SetupChecklistProps) {
       console.error('Failed to fetch onboarding status:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchTrialStatus = async () => {
+    const session = ApexSession.get()
+    if (!session?.email) return
+
+    try {
+      const res = await fetch(`/api/trial/status?email=${encodeURIComponent(session.email)}`, {
+        cache: 'no-store',
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setTrialStatus(data)
+      }
+    } catch (err) {
+      console.error('Failed to fetch trial status:', err)
     }
   }
 
@@ -107,7 +136,9 @@ export default function SetupChecklist({ onComplete }: SetupChecklistProps) {
     {
       id: 'accounts',
       label: 'Connect Your Accounts',
-      description: 'Connect Facebook, Instagram, and TikTok',
+      description: trialStatus?.trialStarted 
+        ? 'Connect Facebook, Instagram, or TikTok'
+        : '🎉 Connect to start your 30-day free trial',
       completed: accountsConnected,
       action: () => setShowConnectModal(true),
       icon: '🔗',
@@ -128,6 +159,39 @@ export default function SetupChecklist({ onComplete }: SetupChecklistProps) {
 
   return (
     <>
+      {/* Trial Status Banner */}
+      {trialStatus && (
+        <div className={`mb-4 p-4 rounded-xl border ${
+          trialStatus.expired 
+            ? 'bg-red-500/10 border-red-500/30 text-red-300'
+            : trialStatus.trialStarted
+              ? 'bg-green-500/10 border-green-500/30 text-green-300'
+              : 'bg-apex-purple/10 border-apex-purple/30 text-apex-purple-light'
+        }`}>
+          {trialStatus.expired ? (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span>⏰</span>
+                <span>Your free trial has ended</span>
+              </div>
+              <a href="/billing" className="text-sm underline hover:no-underline">
+                Upgrade to continue →
+              </a>
+            </div>
+          ) : trialStatus.trialStarted ? (
+            <div className="flex items-center gap-2">
+              <span>✨</span>
+              <span>Free trial: <strong>{trialStatus.daysLeft} days left</strong></span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span>🎁</span>
+              <span>Connect your accounts below to start your <strong>30-day free trial</strong></span>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="card mb-6 animate-fade-in border-apex-purple/30 bg-gradient-to-br from-apex-purple/5 to-transparent">
         <div className="flex items-center gap-3 mb-4">
           <span className="text-2xl">🚀</span>
@@ -204,9 +268,21 @@ export default function SetupChecklist({ onComplete }: SetupChecklistProps) {
               </div>
               <h2 className="font-display text-2xl font-bold mb-2">Connect Your Accounts</h2>
               <p className="text-gray-400">
-                You'll be taken to your account portal where you can connect your Facebook, Instagram, and TikTok accounts.
+                {trialStatus?.trialStarted 
+                  ? "You'll be taken to your account portal to connect Facebook, Instagram, or TikTok."
+                  : "Connect your first account to start your 30-day free trial. You'll be taken to your account portal."
+                }
               </p>
             </div>
+
+            {!trialStatus?.trialStarted && (
+              <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 mb-6">
+                <div className="flex items-center gap-2 text-green-300">
+                  <span>🎉</span>
+                  <span className="font-medium">Your 30-day free trial starts when you connect</span>
+                </div>
+              </div>
+            )}
 
             {status?.ghlCredentials && (
               <div className="bg-apex-purple/10 border border-apex-purple/20 rounded-xl p-4 mb-6">
@@ -232,7 +308,7 @@ export default function SetupChecklist({ onComplete }: SetupChecklistProps) {
                 }}
                 className="btn-primary w-full py-3"
               >
-                Open Account Portal →
+                {trialStatus?.trialStarted ? 'Open Account Portal →' : 'Start Free Trial →'}
               </button>
               <button
                 onClick={() => setShowConnectModal(false)}
