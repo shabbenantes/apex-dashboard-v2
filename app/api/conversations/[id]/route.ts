@@ -139,6 +139,21 @@ export async function GET(
   }
 }
 
+// Helper to determine message type from conversation data
+function getMessageTypeFromConvo(convo: any): string {
+  const lastMsgType = convo.lastMessageType || ''
+  if (lastMsgType.includes('FACEBOOK') || lastMsgType === 'TYPE_FACEBOOK') return 'FB'
+  if (lastMsgType.includes('INSTAGRAM')) return 'IG'
+  if (lastMsgType.includes('TIKTOK')) return 'TikTok'
+  
+  // Fallback to conversation type
+  const convoType = String(convo.type || '').toUpperCase()
+  if (convoType.includes('FACEBOOK') || convoType === '11') return 'FB'
+  if (convoType.includes('INSTAGRAM')) return 'IG'
+  
+  return 'SMS' // Default fallback
+}
+
 // POST - Send a message in this conversation
 export async function POST(
   request: NextRequest,
@@ -170,13 +185,40 @@ export async function POST(
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
     
+    const locationId = customer.ghlLocationId || customer.locationId
     const apiKey = customer.ghlApiKey || customer.apiKey
 
-    if (!apiKey) {
+    if (!apiKey || !locationId) {
       return NextResponse.json({ error: 'GHL not configured' }, { status: 400 })
     }
 
-    // Send message via GHL Conversations API
+    // First fetch conversation to get contactId and channel type
+    const convoRes = await fetch(
+      `${GHL_API_BASE}/conversations/${id}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Version': GHL_API_VERSION,
+        },
+      }
+    )
+
+    if (!convoRes.ok) {
+      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
+    }
+
+    const convoData = await convoRes.json()
+    const convo = convoData.conversation || convoData
+    const contactId = convo.contactId
+
+    if (!contactId) {
+      return NextResponse.json({ error: 'No contact found for conversation' }, { status: 400 })
+    }
+
+    // Determine the channel type
+    const messageType = getMessageTypeFromConvo(convo)
+
+    // Send message via GHL Conversations API with proper params
     const sendRes = await fetch(
       `${GHL_API_BASE}/conversations/messages`,
       {
@@ -187,8 +229,9 @@ export async function POST(
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          type: 'Custom',
-          conversationId: id,
+          type: messageType,
+          contactId: contactId,
+          locationId: locationId,
           message: message.trim(),
         }),
       }
@@ -198,9 +241,9 @@ export async function POST(
       const errorData = await sendRes.json().catch(() => ({}))
       console.error('GHL send message error:', sendRes.status, errorData)
       return NextResponse.json({ 
-        error: 'Failed to send message',
+        error: errorData.message || 'Failed to send message',
         details: errorData 
-      }, { status: 500 })
+      }, { status: sendRes.status })
     }
 
     const sendData = await sendRes.json()
@@ -213,7 +256,7 @@ export async function POST(
         body: message.trim(),
         direction: 'outbound',
         dateAdded: Date.now(),
-        type: 'Custom',
+        type: 'Manual',
       }
     })
   } catch (error) {
