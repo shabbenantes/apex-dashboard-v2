@@ -141,15 +141,16 @@ export async function GET(
 
 // Helper to determine message type from conversation data
 function getMessageTypeFromConvo(convo: any): string {
-  const lastMsgType = convo.lastMessageType || ''
-  if (lastMsgType.includes('FACEBOOK') || lastMsgType === 'TYPE_FACEBOOK') return 'FB'
-  if (lastMsgType.includes('INSTAGRAM')) return 'IG'
-  if (lastMsgType.includes('TIKTOK')) return 'TikTok'
+  // Convert to string since GHL returns numbers (11 = Facebook, etc.)
+  const lastMsgType = String(convo.lastMessageType || '')
+  const convoType = String(convo.type || '')
   
-  // Fallback to conversation type
-  const convoType = String(convo.type || '').toUpperCase()
-  if (convoType.includes('FACEBOOK') || convoType === '11') return 'FB'
-  if (convoType.includes('INSTAGRAM')) return 'IG'
+  // Check for Facebook (type 11 or TYPE_FACEBOOK)
+  if (lastMsgType === '11' || lastMsgType.includes('FACEBOOK') || convoType === '11') return 'FB'
+  // Check for Instagram
+  if (lastMsgType.includes('INSTAGRAM') || convoType.includes('INSTAGRAM')) return 'IG'
+  // Check for TikTok
+  if (lastMsgType.includes('TIKTOK') || convoType.includes('TIKTOK')) return 'TikTok'
   
   return 'SMS' // Default fallback
 }
