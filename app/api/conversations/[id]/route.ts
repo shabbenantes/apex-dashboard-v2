@@ -20,29 +20,6 @@ async function getCustomerFromToken(token: string) {
   return verifyData.customer
 }
 
-// Map GHL conversation/message types to the type needed for sending
-function getMessageType(convoType: string | number, messageType?: string): string {
-  // If we have an explicit message type from conversations, use it
-  if (messageType) {
-    if (messageType.includes('FACEBOOK') || messageType === 'FB') return 'FB'
-    if (messageType.includes('INSTAGRAM') || messageType === 'IG') return 'IG'
-    if (messageType.includes('TIKTOK')) return 'TikTok'
-    if (messageType.includes('SMS')) return 'SMS'
-    if (messageType.includes('WHATSAPP')) return 'WhatsApp'
-  }
-  
-  // Fall back to conversation type
-  const typeStr = String(convoType).toUpperCase()
-  if (typeStr.includes('FACEBOOK') || typeStr === '11' || typeStr === 'FB') return 'FB'
-  if (typeStr.includes('INSTAGRAM') || typeStr === 'IG') return 'IG'
-  if (typeStr.includes('TIKTOK')) return 'TikTok'
-  if (typeStr.includes('SMS') || typeStr === '1') return 'SMS'
-  if (typeStr.includes('WHATSAPP')) return 'WhatsApp'
-  
-  // Default to SMS if unknown
-  return 'SMS'
-}
-
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -122,7 +99,6 @@ export async function GET(
 
     let messages: any[] = []
     let contactName = 'Unknown'
-    let lastMessageType = ''
     
     if (messagesRes.ok) {
       const messagesData = await messagesRes.json()
@@ -140,32 +116,21 @@ export async function GET(
       // Sort by date, oldest first
       messages.sort((a, b) => a.dateAdded - b.dateAdded)
       
-      // Get contact name and last message type from messages
+      // Get contact name from inbound messages
       const inboundMsg = messagesList.find((m: any) => m.direction === 'inbound')
       if (inboundMsg?.from) {
         contactName = inboundMsg.from
       } else if (messagesList[0]?.to) {
         contactName = messagesList[0].to
       }
-      
-      // Get the message type from the most recent message
-      if (messagesList.length > 0) {
-        lastMessageType = messagesList[0].messageType || messagesList[0].type || ''
-      }
     }
-
-    // Determine the channel type for sending replies
-    const channelType = getMessageType(convo.type || convo.lastMessageType, lastMessageType)
 
     return NextResponse.json({
       id: convo.id,
-      contactId: convo.contactId,
-      locationId: locationId,
       contactName: convo.contactName || convo.fullName || contactName,
       contactEmail: convo.email,
       contactPhone: convo.phone,
-      type: convo.lastMessageType || (convo.type === 11 ? 'TYPE_FACEBOOK' : (convo.type || 'PHONE')),
-      channelType, // The type to use when sending messages
+      type: convo.type === 1 ? 'TYPE_FACEBOOK' : (convo.type || 'PHONE'),
       messages,
     })
   } catch (error) {
@@ -205,50 +170,13 @@ export async function POST(
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
     
-    const locationId = customer.ghlLocationId || customer.locationId
     const apiKey = customer.ghlApiKey || customer.apiKey
 
-    if (!apiKey || !locationId) {
+    if (!apiKey) {
       return NextResponse.json({ error: 'GHL not configured' }, { status: 400 })
     }
 
-    // First, fetch conversation details to get contactId and channel type
-    const convoRes = await fetch(
-      `${GHL_API_BASE}/conversations/${id}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Version': GHL_API_VERSION,
-        },
-      }
-    )
-
-    if (!convoRes.ok) {
-      console.error('Failed to fetch conversation for send:', convoRes.status)
-      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
-    }
-
-    const convoData = await convoRes.json()
-    const convo = convoData.conversation || convoData
-    const contactId = convo.contactId
-
-    if (!contactId) {
-      console.error('No contactId in conversation:', convo)
-      return NextResponse.json({ error: 'Invalid conversation - no contact' }, { status: 400 })
-    }
-
-    // Determine the message type from conversation
-    const messageType = getMessageType(convo.type || convo.lastMessageType, convo.lastMessageType)
-
-    console.log('Sending message:', {
-      type: messageType,
-      locationId,
-      contactId,
-      messageLength: message.trim().length,
-    })
-
     // Send message via GHL Conversations API
-    // For social channels (FB, IG, TikTok), we need type, contactId, locationId, and message
     const sendRes = await fetch(
       `${GHL_API_BASE}/conversations/messages`,
       {
@@ -259,9 +187,8 @@ export async function POST(
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          type: messageType,
-          contactId: contactId,
-          locationId: locationId,
+          type: 'Custom',
+          conversationId: id,
           message: message.trim(),
         }),
       }
@@ -270,23 +197,10 @@ export async function POST(
     if (!sendRes.ok) {
       const errorData = await sendRes.json().catch(() => ({}))
       console.error('GHL send message error:', sendRes.status, errorData)
-      
-      // Provide more specific error messages
-      let errorMessage = 'Failed to send message'
-      if (errorData.message) {
-        errorMessage = errorData.message
-      } else if (sendRes.status === 400) {
-        errorMessage = 'Invalid request - check channel connection'
-      } else if (sendRes.status === 401) {
-        errorMessage = 'API key unauthorized'
-      } else if (sendRes.status === 422) {
-        errorMessage = 'Cannot send to this channel - check Facebook/Instagram connection'
-      }
-      
       return NextResponse.json({ 
-        error: errorMessage,
+        error: 'Failed to send message',
         details: errorData 
-      }, { status: sendRes.status })
+      }, { status: 500 })
     }
 
     const sendData = await sendRes.json()
@@ -299,7 +213,7 @@ export async function POST(
         body: message.trim(),
         direction: 'outbound',
         dateAdded: Date.now(),
-        type: 'Manual', // Mark as manual to distinguish from AI
+        type: 'Custom',
       }
     })
   } catch (error) {
