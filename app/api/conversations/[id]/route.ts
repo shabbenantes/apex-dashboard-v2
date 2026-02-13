@@ -204,19 +204,24 @@ export async function POST(
     )
 
     if (!convoRes.ok) {
-      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
+      const errBody = await convoRes.text().catch(() => '')
+      console.error('Convo fetch failed:', convoRes.status, errBody)
+      return NextResponse.json({ error: `Conversation not found: ${convoRes.status}` }, { status: 404 })
     }
 
     const convoData = await convoRes.json()
     const convo = convoData.conversation || convoData
     const contactId = convo.contactId
 
+    console.log('Convo data:', { id, contactId, type: convo.type, lastMessageType: convo.lastMessageType })
+
     if (!contactId) {
-      return NextResponse.json({ error: 'No contact found for conversation' }, { status: 400 })
+      return NextResponse.json({ error: 'No contact found for conversation', convoKeys: Object.keys(convo) }, { status: 400 })
     }
 
     // Determine the channel type
     const messageType = getMessageTypeFromConvo(convo)
+    console.log('Sending as type:', messageType)
 
     // Send message via GHL Conversations API with proper params
     const sendRes = await fetch(
@@ -259,8 +264,11 @@ export async function POST(
         type: 'Manual',
       }
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to send message:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ 
+      error: error?.message || 'Internal server error',
+      stack: process.env.NODE_ENV === 'development' ? error?.stack : undefined
+    }, { status: 500 })
   }
 }
