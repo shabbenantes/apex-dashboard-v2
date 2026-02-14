@@ -280,56 +280,42 @@ export interface IntegrationStatus {
   }
 }
 
+const DASHBOARD_API_URL = process.env.DASHBOARD_API_URL || 'https://apex-dashboard-api-5r3u.onrender.com'
+
 export async function getIntegrationStatus(locationId: string, apiKey: string): Promise<IntegrationStatus> {
   let fbConnected = false
   let igConnected = false
   let tiktokConnected = false
   let fbPageName: string | undefined
   let igHandle: string | undefined
+  let newConnectionsDetected = false
 
+  // Step 1: Check our stored connection state first
+  // Once detected, connections stay "connected" permanently
   try {
-    // Method 1: Check GHL integrations endpoint directly
-    const integrationsRes = await fetch(
-      `${GHL_API_BASE}/locations/${locationId}/integrations`,
-      {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Version': GHL_API_VERSION,
-        },
+    const storedRes = await fetch(`${DASHBOARD_API_URL}/connections/${locationId}`, {
+      cache: 'no-store',
+    })
+    if (storedRes.ok) {
+      const stored = await storedRes.json()
+      if (stored.facebook?.connected) {
+        fbConnected = true
+        fbPageName = stored.facebook.pageName || 'Connected'
       }
-    )
-    
-    if (integrationsRes.ok) {
-      const intData = await integrationsRes.json()
-      const integrations = intData.integrations || []
-      
-      // Check for Facebook/Instagram integration
-      for (const int of integrations) {
-        const name = (int.name || int.type || '').toLowerCase()
-        if (name.includes('facebook') || name.includes('meta')) {
-          fbConnected = int.connected || int.active || !!int.pageId
-          fbPageName = int.pageName || int.name || 'Connected'
-          // Meta integration usually includes Instagram
-          if (int.instagramConnected || int.instagram) {
-            igConnected = true
-            igHandle = int.instagramHandle || 'Connected'
-          }
-        }
-        if (name.includes('instagram')) {
-          igConnected = int.connected || int.active || !!int.accountId
-          igHandle = int.handle || int.username || 'Connected'
-        }
-        if (name.includes('tiktok')) {
-          tiktokConnected = int.connected || int.active || !!int.accountId
-        }
+      if (stored.instagram?.connected) {
+        igConnected = true
+        igHandle = stored.instagram.handle || 'Connected'
+      }
+      if (stored.tiktok?.connected) {
+        tiktokConnected = true
       }
     }
   } catch (e) {
-    console.log('Could not fetch integrations endpoint, falling back to conversation check')
+    console.log('Could not fetch stored connection state')
   }
 
-  // Method 2: Fallback - check for existing conversations
-  if (!fbConnected && !igConnected) {
+  // Step 2: If not all connected, check GHL for new conversations
+  if (!fbConnected || !igConnected || !tiktokConnected) {
     try {
       const response = await fetch(
         `${GHL_API_BASE}/conversations/search?locationId=${locationId}&limit=50`,
@@ -346,28 +332,47 @@ export async function getIntegrationStatus(locationId: string, apiKey: string): 
         const conversations = data.conversations || []
         
         // Check for Facebook conversations - check BOTH type and lastMessageType
-        const fbConvo = conversations.find((c: any) => {
-          const typeField = (c.type || '').toUpperCase()
-          const msgTypeField = (c.lastMessageType || '').toUpperCase()
-          const isFB = (t: string) => t.includes('FACEBOOK') || t === 'FB' || t === 'TYPE_FACEBOOK'
-          return isFB(typeField) || isFB(msgTypeField)
-        })
+        if (!fbConnected) {
+          const fbConvo = conversations.find((c: any) => {
+            const typeField = (c.type || '').toUpperCase()
+            const msgTypeField = (c.lastMessageType || '').toUpperCase()
+            const isFB = (t: string) => t.includes('FACEBOOK') || t === 'FB' || t === 'TYPE_FACEBOOK'
+            return isFB(typeField) || isFB(msgTypeField)
+          })
+          if (fbConvo) {
+            fbConnected = true
+            fbPageName = 'Connected'
+            newConnectionsDetected = true
+          }
+        }
         
         // Check for Instagram conversations - check BOTH type and lastMessageType
-        const igConvo = conversations.find((c: any) => {
-          const typeField = (c.type || '').toUpperCase()
-          const msgTypeField = (c.lastMessageType || '').toUpperCase()
-          const isIG = (t: string) => t.includes('INSTAGRAM') || t === 'IG' || t === 'TYPE_INSTAGRAM'
-          return isIG(typeField) || isIG(msgTypeField)
-        })
-
-        if (fbConvo) {
-          fbConnected = true
-          fbPageName = fbPageName || 'Connected'
+        if (!igConnected) {
+          const igConvo = conversations.find((c: any) => {
+            const typeField = (c.type || '').toUpperCase()
+            const msgTypeField = (c.lastMessageType || '').toUpperCase()
+            const isIG = (t: string) => t.includes('INSTAGRAM') || t === 'IG' || t === 'TYPE_INSTAGRAM'
+            return isIG(typeField) || isIG(msgTypeField)
+          })
+          if (igConvo) {
+            igConnected = true
+            igHandle = 'Connected'
+            newConnectionsDetected = true
+          }
         }
-        if (igConvo) {
-          igConnected = true
-          igHandle = igHandle || 'Connected'
+
+        // Check for TikTok conversations
+        if (!tiktokConnected) {
+          const tiktokConvo = conversations.find((c: any) => {
+            const typeField = (c.type || '').toUpperCase()
+            const msgTypeField = (c.lastMessageType || '').toUpperCase()
+            const isTT = (t: string) => t.includes('TIKTOK')
+            return isTT(typeField) || isTT(msgTypeField)
+          })
+          if (tiktokConvo) {
+            tiktokConnected = true
+            newConnectionsDetected = true
+          }
         }
       }
     } catch (e) {
@@ -375,31 +380,22 @@ export async function getIntegrationStatus(locationId: string, apiKey: string): 
     }
   }
 
-  // Method 3: Check location social settings
-  try {
-    const locationRes = await fetch(
-      `${GHL_API_BASE}/locations/${locationId}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Version': GHL_API_VERSION,
-        },
-      }
-    )
-    if (locationRes.ok) {
-      const locData = await locationRes.json()
-      const social = locData.location?.social || locData.social || {}
-      
-      // If social URLs are set, it might indicate connection
-      if (social.facebookUrl && !fbConnected) {
-        fbPageName = social.facebookUrl.split('/').pop() || fbPageName
-      }
-      if (social.instagram && !igConnected) {
-        igHandle = social.instagram.replace('@', '') || igHandle
-      }
+  // Step 3: If we detected new connections, save them permanently
+  if (newConnectionsDetected) {
+    try {
+      await fetch(`${DASHBOARD_API_URL}/connections/${locationId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          facebook: { connected: fbConnected, pageName: fbPageName },
+          instagram: { connected: igConnected, handle: igHandle },
+          tiktok: { connected: tiktokConnected },
+        }),
+      })
+      console.log('Saved new connection state')
+    } catch (e) {
+      console.error('Failed to save connection state:', e)
     }
-  } catch (e) {
-    // Ignore - just extra info
   }
 
   return {
