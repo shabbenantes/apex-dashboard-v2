@@ -265,16 +265,19 @@ export async function getDashboardStats(locationId: string, apiKey: string): Pro
 export interface IntegrationStatus {
   facebook: {
     connected: boolean
+    verified?: boolean
     pageName?: string
     pageId?: string
   }
   instagram: {
     connected: boolean
+    verified?: boolean
     handle?: string
     accountId?: string
   }
   tiktok: {
     connected: boolean
+    verified?: boolean
     handle?: string
     accountId?: string
   }
@@ -284,8 +287,11 @@ const DASHBOARD_API_URL = process.env.DASHBOARD_API_URL || 'https://apex-dashboa
 
 export async function getIntegrationStatus(locationId: string, apiKey: string): Promise<IntegrationStatus> {
   let fbConnected = false
+  let fbVerified = false
   let igConnected = false
+  let igVerified = false
   let tiktokConnected = false
+  let tiktokVerified = false
   let fbPageName: string | undefined
   let igHandle: string | undefined
   let newConnectionsDetected = false
@@ -300,14 +306,17 @@ export async function getIntegrationStatus(locationId: string, apiKey: string): 
       const stored = await storedRes.json()
       if (stored.facebook?.connected) {
         fbConnected = true
+        fbVerified = stored.facebook.verified || false
         fbPageName = stored.facebook.pageName || 'Connected'
       }
       if (stored.instagram?.connected) {
         igConnected = true
+        igVerified = stored.instagram.verified || false
         igHandle = stored.instagram.handle || 'Connected'
       }
       if (stored.tiktok?.connected) {
         tiktokConnected = true
+        tiktokVerified = stored.tiktok.verified || false
       }
     }
   } catch (e) {
@@ -401,14 +410,17 @@ export async function getIntegrationStatus(locationId: string, apiKey: string): 
   return {
     facebook: {
       connected: fbConnected,
+      verified: fbVerified,
       pageName: fbConnected ? fbPageName : undefined,
     },
     instagram: {
       connected: igConnected,
+      verified: igVerified,
       handle: igConnected ? igHandle : undefined,
     },
     tiktok: {
       connected: tiktokConnected,
+      verified: tiktokVerified,
     },
   }
 }

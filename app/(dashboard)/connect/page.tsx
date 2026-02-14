@@ -52,11 +52,11 @@ const CHANNELS: Record<string, ChannelConfig> = {
       emoji: '📘',
       testMessage: 'TEST',
       steps: [
-        'Open Facebook on your phone',
-        'Go to your business page',
-        'Tap "Message" to message your own page',
-        'Send the word TEST',
-        'Come back here — we\'ll detect it!'
+        'Open Facebook on your phone or computer',
+        'Find your business page',
+        'Click "Message" to send a message TO your own page',
+        'Type TEST and send it',
+        'Come back here — we\'ll detect it automatically!'
       ]
     }
   },
@@ -89,9 +89,9 @@ const CHANNELS: Record<string, ChannelConfig> = {
 type ChannelKey = 'meta' | 'tiktok'
 
 interface IntegrationStatus {
-  facebook: { connected: boolean; pageName?: string }
-  instagram: { connected: boolean; handle?: string }
-  tiktok: { connected: boolean; handle?: string }
+  facebook: { connected: boolean; pageName?: string; verified?: boolean }
+  instagram: { connected: boolean; handle?: string; verified?: boolean }
+  tiktok: { connected: boolean; handle?: string; verified?: boolean }
   ghlConnectUrl?: string
 }
 
@@ -226,23 +226,47 @@ export default function ConnectPage() {
     return null
   }, [trialStatus?.trialStarted])
 
-  // Polling for test detection
+  // Lightweight poll just for verification status
+  const pollVerification = useCallback(async () => {
+    const token = ApexSession.getToken()
+    if (!token) return null
+    
+    try {
+      const res = await fetch('/api/connections/poll', {
+        headers: { 'Authorization': `Bearer ${token}` },
+        cache: 'no-store',
+      })
+      if (res.ok) {
+        return await res.json()
+      }
+    } catch (err) {
+      console.error('Poll error:', err)
+    }
+    return null
+  }, [])
+
+  // Polling for test detection - uses lightweight endpoint
   const startPolling = useCallback(() => {
     setTestStatus('polling')
     pollCountRef.current = 0
     
     pollIntervalRef.current = setInterval(async () => {
       pollCountRef.current++
-      const newStatus = await fetchStatus()
       
-      if (newStatus) {
-        const isConnected = testChannel === 'meta' 
-          ? (newStatus.facebook?.connected || newStatus.instagram?.connected)
-          : newStatus.tiktok?.connected
+      // Use lightweight poll first
+      const pollResult = await pollVerification()
+      
+      if (pollResult) {
+        const isVerified = testChannel === 'meta' 
+          ? (pollResult.facebook?.verified || pollResult.instagram?.verified)
+          : pollResult.tiktok?.verified
         
-        if (isConnected) {
+        if (isVerified) {
+          // Fetch full status to update UI
+          await fetchStatus()
           setTestStatus('success')
           stopPolling()
+          return
         }
       }
       
@@ -250,8 +274,8 @@ export default function ConnectPage() {
       if (pollCountRef.current >= 24) {
         stopPolling()
       }
-    }, 5000)
-  }, [fetchStatus, testChannel])
+    }, 3000) // Poll every 3 seconds for faster feedback
+  }, [pollVerification, fetchStatus, testChannel])
 
   const stopPolling = useCallback(() => {
     if (pollIntervalRef.current) {
@@ -307,9 +331,15 @@ export default function ConnectPage() {
     }
   }
 
+  const getChannelVerified = (key: ChannelKey): boolean => {
+    if (key === 'meta') return status.facebook?.verified || status.instagram?.verified || false
+    return status[key]?.verified || false
+  }
+
   const ChannelCard = ({ channelKey }: { channelKey: ChannelKey }) => {
     const channel = CHANNELS[channelKey]
     const isConnected = getChannelStatus(channelKey)
+    const isVerified = getChannelVerified(channelKey)
 
     return (
       <div className={`card mb-4 ${channel.comingSoon ? 'opacity-60' : ''}`}>
@@ -328,7 +358,14 @@ export default function ConnectPage() {
                 )}
               </div>
               {!channel.comingSoon && (
-                isConnected ? (
+                isVerified ? (
+                  <span className="flex items-center gap-1.5 text-green-400 text-sm font-medium">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Verified
+                  </span>
+                ) : isConnected ? (
                   <span className="flex items-center gap-1.5 text-green-400 text-sm">
                     <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
                     Connected
@@ -342,16 +379,20 @@ export default function ConnectPage() {
               )}
             </div>
             <p className="text-gray-400 text-sm mb-3">
-              {isConnected ? channel.connectedText : channel.description}
+              {isVerified 
+                ? '✓ AI assistant is responding to messages' 
+                : isConnected 
+                  ? channel.connectedText 
+                  : channel.description}
             </p>
             
-            {/* Test Connection button */}
-            {!channel.comingSoon && !isConnected && (
+            {/* Test Connection button - show if not verified */}
+            {!channel.comingSoon && !isVerified && (
               <button
                 onClick={() => openTestModal(channelKey)}
                 className="text-sm bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 px-4 py-2 rounded-lg transition-colors font-medium"
               >
-                Test Connection
+                {isConnected ? 'Verify Connection' : 'Test Connection'}
               </button>
             )}
           </div>
