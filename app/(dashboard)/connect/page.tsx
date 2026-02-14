@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { ApexSession } from '@/lib/session'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://apex-dashboard-api-5r3u.onrender.com'
@@ -22,6 +22,12 @@ interface ChannelConfig {
   connectedText: string
   available: boolean
   comingSoon?: boolean
+  testInstructions: {
+    platform: string
+    steps: string[]
+    testMessage: string
+    emoji: string
+  }
 }
 
 const CHANNELS: Record<string, ChannelConfig> = {
@@ -41,6 +47,18 @@ const CHANNELS: Record<string, ChannelConfig> = {
     description: 'Respond to Facebook Messenger and Instagram DMs automatically',
     connectedText: 'Facebook & Instagram connected',
     available: true,
+    testInstructions: {
+      platform: 'Facebook',
+      emoji: '📘',
+      testMessage: 'TEST',
+      steps: [
+        'Open Facebook on your phone',
+        'Go to your business page',
+        'Tap "Message" to message your own page',
+        'Send the word TEST',
+        'Come back here — we\'ll detect it!'
+      ]
+    }
   },
   tiktok: {
     name: 'TikTok',
@@ -53,6 +71,18 @@ const CHANNELS: Record<string, ChannelConfig> = {
     description: 'Respond to TikTok messages automatically',
     connectedText: 'TikTok connected',
     available: true,
+    testInstructions: {
+      platform: 'TikTok',
+      emoji: '🎵',
+      testMessage: 'TEST',
+      steps: [
+        'Open TikTok on your phone',
+        'Go to your business profile',
+        'Message your own account',
+        'Send the word TEST',
+        'Come back here — we\'ll detect it!'
+      ]
+    }
   },
 }
 
@@ -84,12 +114,14 @@ export default function ConnectPage() {
   const [loading, setLoading] = useState(true)
   const [checking, setChecking] = useState(false)
   const [showConnectModal, setShowConnectModal] = useState(false)
-  const [showVerifyModal, setShowVerifyModal] = useState(false)
-  const [verifyPlatform, setVerifyPlatform] = useState<'facebook' | 'instagram' | null>(null)
-  const [verifying, setVerifying] = useState(false)
-  const [verifyResult, setVerifyResult] = useState<{ success: boolean; message: string } | null>(null)
+  const [showTestModal, setShowTestModal] = useState(false)
+  const [testChannel, setTestChannel] = useState<ChannelKey | null>(null)
+  const [testStatus, setTestStatus] = useState<'waiting' | 'polling' | 'success'>('waiting')
+  const [copied, setCopied] = useState(false)
   const [trialError, setTrialError] = useState<string | null>(null)
   const previousStatus = useRef<IntegrationStatus | null>(null)
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const pollCountRef = useRef(0)
 
   async function fetchTrialStatus() {
     const session = ApexSession.get()
@@ -147,55 +179,7 @@ export default function ConnectPage() {
     }
   }
 
-  async function verifyConnection(platform: 'facebook' | 'instagram') {
-    const session = ApexSession.get()
-    if (!session?.locationId || !session?.apiKey) {
-      setVerifyResult({ success: false, message: 'Session not found. Please log in again.' })
-      return
-    }
-
-    setVerifying(true)
-    setVerifyResult(null)
-
-    try {
-      const res = await fetch(`${API_URL}/verify-connection`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          locationId: session.locationId,
-          apiKey: session.apiKey,
-          platform,
-          contactEmail: session.email,
-          contactName: session.businessName || 'Apex Customer',
-        }),
-      })
-
-      const data = await res.json()
-
-      if (res.ok && data.success) {
-        setVerifyResult({ 
-          success: true, 
-          message: `🎉 ${platform === 'facebook' ? 'Facebook' : 'Instagram'} is connected! Check your messages.` 
-        })
-        // Refresh status to show connected
-        setTimeout(() => {
-          fetchStatus()
-        }, 1000)
-      } else {
-        setVerifyResult({ 
-          success: false, 
-          message: data.error || 'Verification failed. Make sure you\'ve connected the account in GHL first.' 
-        })
-      }
-    } catch (err) {
-      console.error('Verify connection error:', err)
-      setVerifyResult({ success: false, message: 'Failed to verify. Please try again.' })
-    } finally {
-      setVerifying(false)
-    }
-  }
-
-  async function fetchStatus() {
+  const fetchStatus = useCallback(async () => {
     try {
       const token = ApexSession.getToken()
       const [intRes, onboardRes] = await Promise.all([
@@ -227,6 +211,7 @@ export default function ConnectPage() {
         
         previousStatus.current = newStatus
         setStatus(newStatus)
+        return newStatus
       }
       if (onboardRes.ok) {
         const data = await onboardRes.json()
@@ -238,11 +223,47 @@ export default function ConnectPage() {
       setLoading(false)
       setChecking(false)
     }
-  }
+    return null
+  }, [trialStatus?.trialStarted])
+
+  // Polling for test detection
+  const startPolling = useCallback(() => {
+    setTestStatus('polling')
+    pollCountRef.current = 0
+    
+    pollIntervalRef.current = setInterval(async () => {
+      pollCountRef.current++
+      const newStatus = await fetchStatus()
+      
+      if (newStatus) {
+        const isConnected = testChannel === 'meta' 
+          ? (newStatus.facebook?.connected || newStatus.instagram?.connected)
+          : newStatus.tiktok?.connected
+        
+        if (isConnected) {
+          setTestStatus('success')
+          stopPolling()
+        }
+      }
+      
+      // Stop after 2 minutes (24 polls at 5 sec each)
+      if (pollCountRef.current >= 24) {
+        stopPolling()
+      }
+    }, 5000)
+  }, [fetchStatus, testChannel])
+
+  const stopPolling = useCallback(() => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current)
+      pollIntervalRef.current = null
+    }
+  }, [])
 
   useEffect(() => {
     fetchStatus()
     fetchTrialStatus()
+    return () => stopPolling()
   }, [])
 
   const isMetaConnected = status.facebook?.connected || status.instagram?.connected
@@ -265,10 +286,25 @@ export default function ConnectPage() {
     }
   }
 
-  const openVerifyModal = (platform: 'facebook' | 'instagram') => {
-    setVerifyPlatform(platform)
-    setVerifyResult(null)
-    setShowVerifyModal(true)
+  const openTestModal = (channel: ChannelKey) => {
+    setTestChannel(channel)
+    setTestStatus('waiting')
+    setCopied(false)
+    setShowTestModal(true)
+  }
+
+  const closeTestModal = () => {
+    setShowTestModal(false)
+    stopPolling()
+    setTestStatus('waiting')
+  }
+
+  const copyTestMessage = () => {
+    if (testChannel) {
+      navigator.clipboard.writeText(CHANNELS[testChannel].testInstructions.testMessage)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
   }
 
   const ChannelCard = ({ channelKey }: { channelKey: ChannelKey }) => {
@@ -309,22 +345,14 @@ export default function ConnectPage() {
               {isConnected ? channel.connectedText : channel.description}
             </p>
             
-            {/* Verify buttons for Meta channels */}
-            {channelKey === 'meta' && !isConnected && (
-              <div className="flex gap-2">
-                <button
-                  onClick={() => openVerifyModal('facebook')}
-                  className="text-xs bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 px-3 py-1.5 rounded-lg transition-colors"
-                >
-                  Verify Facebook
-                </button>
-                <button
-                  onClick={() => openVerifyModal('instagram')}
-                  className="text-xs bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 px-3 py-1.5 rounded-lg transition-colors"
-                >
-                  Verify Instagram
-                </button>
-              </div>
+            {/* Test Connection button */}
+            {!channel.comingSoon && !isConnected && (
+              <button
+                onClick={() => openTestModal(channelKey)}
+                className="text-sm bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 px-4 py-2 rounded-lg transition-colors font-medium"
+              >
+                Test Connection
+              </button>
             )}
           </div>
         </div>
@@ -354,7 +382,7 @@ export default function ConnectPage() {
 
   return (
     <div className="max-w-2xl">
-      {/* Connect All Modal */}
+      {/* Connect Modal */}
       {showConnectModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-[#0f172a] border border-white/[0.08] rounded-2xl p-6 max-w-md w-full animate-fade-in">
@@ -364,7 +392,7 @@ export default function ConnectPage() {
               </div>
               <h2 className="text-2xl font-bold mb-2">Connect Your Accounts</h2>
               <p className="text-gray-400">
-                You'll be taken to your account portal where you can connect your Facebook, Instagram, and TikTok accounts.
+                You'll be taken to your account portal to connect Facebook, Instagram, and TikTok.
               </p>
             </div>
 
@@ -403,75 +431,115 @@ export default function ConnectPage() {
             </div>
 
             <p className="text-center text-gray-500 text-xs mt-4">
-              After connecting, come back and click "Verify" to confirm
+              After connecting, come back and click "Test Connection"
             </p>
           </div>
         </div>
       )}
 
-      {/* Verify Connection Modal */}
-      {showVerifyModal && verifyPlatform && (
+      {/* Test Connection Modal */}
+      {showTestModal && testChannel && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-[#0f172a] border border-white/[0.08] rounded-2xl p-6 max-w-md w-full animate-fade-in">
-            <div className="text-center mb-6">
-              <div className={`w-16 h-16 ${verifyPlatform === 'facebook' ? 'bg-blue-500/20' : 'bg-pink-500/20'} rounded-full flex items-center justify-center mx-auto mb-4`}>
-                <span className="text-3xl">{verifyPlatform === 'facebook' ? '📘' : '📸'}</span>
-              </div>
-              <h2 className="text-2xl font-bold mb-2">
-                Verify {verifyPlatform === 'facebook' ? 'Facebook' : 'Instagram'}
-              </h2>
-              <p className="text-gray-400">
-                We'll send a test message to confirm your {verifyPlatform === 'facebook' ? 'Facebook Messenger' : 'Instagram DMs'} connection is working.
-              </p>
-            </div>
-
-            {verifyResult && (
-              <div className={`p-4 rounded-xl mb-6 ${verifyResult.success ? 'bg-green-500/10 border border-green-500/30' : 'bg-red-500/10 border border-red-500/30'}`}>
-                <p className={verifyResult.success ? 'text-green-300' : 'text-red-300'}>
-                  {verifyResult.message}
+            
+            {testStatus === 'success' ? (
+              // Success State
+              <div className="text-center py-4">
+                <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
+                  <span className="text-5xl">🎉</span>
+                </div>
+                <h2 className="text-2xl font-bold mb-2 text-green-400">Connected!</h2>
+                <p className="text-gray-400 mb-6">
+                  Your {CHANNELS[testChannel].testInstructions.platform} is working perfectly. Your AI assistant is ready to respond to customers 24/7.
                 </p>
-              </div>
-            )}
-
-            <div className="space-y-3">
-              {!verifyResult?.success && (
                 <button
-                  onClick={() => verifyConnection(verifyPlatform)}
-                  disabled={verifying}
-                  className={`w-full py-3 rounded-xl font-semibold transition-all ${
-                    verifyPlatform === 'facebook' 
-                      ? 'bg-blue-500 hover:bg-blue-600 text-white' 
-                      : 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white'
-                  } disabled:opacity-50`}
+                  onClick={closeTestModal}
+                  className="btn-primary w-full py-3"
                 >
-                  {verifying ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  Awesome! 🚀
+                </button>
+              </div>
+            ) : (
+              // Waiting / Polling State
+              <>
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-3xl">{CHANNELS[testChannel].testInstructions.emoji}</span>
+                  </div>
+                  <h2 className="text-2xl font-bold mb-2">
+                    Test {CHANNELS[testChannel].testInstructions.platform}
+                  </h2>
+                  <p className="text-gray-400">
+                    Send yourself a test message to confirm it's working
+                  </p>
+                </div>
+
+                {/* Steps */}
+                <div className="space-y-3 mb-6">
+                  {CHANNELS[testChannel].testInstructions.steps.map((step, i) => (
+                    <div key={i} className="flex items-start gap-3">
+                      <div className="w-6 h-6 bg-orange-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-orange-400 text-xs font-bold">{i + 1}</span>
+                      </div>
+                      <p className="text-gray-300 text-sm">{step}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Copy test message */}
+                <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
+                  <p className="text-gray-400 text-xs mb-2">Send this message:</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-white text-2xl font-bold font-mono">
+                      {CHANNELS[testChannel].testInstructions.testMessage}
+                    </span>
+                    <button
+                      onClick={copyTestMessage}
+                      className="text-sm bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      {copied ? '✓ Copied!' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Polling indicator */}
+                {testStatus === 'polling' && (
+                  <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 mb-6">
+                    <div className="flex items-center gap-3">
+                      <svg className="w-5 h-5 animate-spin text-blue-400" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      Verifying...
-                    </span>
-                  ) : (
-                    `Send Test Message`
-                  )}
-                </button>
-              )}
-              <button
-                onClick={() => {
-                  setShowVerifyModal(false)
-                  setVerifyResult(null)
-                }}
-                className="w-full py-3 text-gray-400 hover:text-white transition-colors"
-              >
-                {verifyResult?.success ? 'Done' : 'Cancel'}
-              </button>
-            </div>
+                      <span className="text-blue-300 text-sm">Waiting for your test message...</span>
+                    </div>
+                  </div>
+                )}
 
-            {!verifyResult && (
-              <p className="text-center text-gray-500 text-xs mt-4">
-                Make sure you've connected your account in GHL first
-              </p>
+                {/* Action buttons */}
+                <div className="space-y-3">
+                  {testStatus === 'waiting' ? (
+                    <button
+                      onClick={startPolling}
+                      className="btn-primary w-full py-3"
+                    >
+                      I've sent the message ✓
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => fetchStatus()}
+                      className="w-full py-3 bg-white/5 hover:bg-white/10 rounded-xl text-white transition-colors"
+                    >
+                      Check again
+                    </button>
+                  )}
+                  <button
+                    onClick={closeTestModal}
+                    className="w-full py-3 text-gray-400 hover:text-white transition-colors"
+                  >
+                    I'll do this later
+                  </button>
+                </div>
+              </>
             )}
           </div>
         </div>
