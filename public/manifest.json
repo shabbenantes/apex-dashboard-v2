@@ -4,8 +4,8 @@
   "description": "Manage your AI messaging assistant",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#0F0F1A",
-  "theme_color": "#6366F1",
+  "background_color": "#0f172a",
+  "theme_color": "#f97316",
   "orientation": "portrait-primary",
   "icons": [
     {
