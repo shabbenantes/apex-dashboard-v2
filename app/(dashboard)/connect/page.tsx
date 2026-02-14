@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { ApexSession } from '@/lib/session'
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://apex-dashboard-api-5r3u.onrender.com'
+
 interface TrialStatus {
   trialStarted: boolean
   trialStartedAt?: number
@@ -82,6 +84,10 @@ export default function ConnectPage() {
   const [loading, setLoading] = useState(true)
   const [checking, setChecking] = useState(false)
   const [showConnectModal, setShowConnectModal] = useState(false)
+  const [showVerifyModal, setShowVerifyModal] = useState(false)
+  const [verifyPlatform, setVerifyPlatform] = useState<'facebook' | 'instagram' | null>(null)
+  const [verifying, setVerifying] = useState(false)
+  const [verifyResult, setVerifyResult] = useState<{ success: boolean; message: string } | null>(null)
   const [trialError, setTrialError] = useState<string | null>(null)
   const previousStatus = useRef<IntegrationStatus | null>(null)
 
@@ -138,6 +144,54 @@ export default function ConnectPage() {
     } catch (err) {
       console.error('Failed to register trial:', err)
       return false
+    }
+  }
+
+  async function verifyConnection(platform: 'facebook' | 'instagram') {
+    const session = ApexSession.get()
+    if (!session?.locationId || !session?.apiKey) {
+      setVerifyResult({ success: false, message: 'Session not found. Please log in again.' })
+      return
+    }
+
+    setVerifying(true)
+    setVerifyResult(null)
+
+    try {
+      const res = await fetch(`${API_URL}/verify-connection`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          locationId: session.locationId,
+          apiKey: session.apiKey,
+          platform,
+          contactEmail: session.email,
+          contactName: session.businessName || 'Apex Customer',
+        }),
+      })
+
+      const data = await res.json()
+
+      if (res.ok && data.success) {
+        setVerifyResult({ 
+          success: true, 
+          message: `🎉 ${platform === 'facebook' ? 'Facebook' : 'Instagram'} is connected! Check your messages.` 
+        })
+        // Refresh status to show connected
+        setTimeout(() => {
+          fetchStatus()
+        }, 1000)
+      } else {
+        setVerifyResult({ 
+          success: false, 
+          message: data.error || 'Verification failed. Make sure you\'ve connected the account in GHL first.' 
+        })
+      }
+    } catch (err) {
+      console.error('Verify connection error:', err)
+      setVerifyResult({ success: false, message: 'Failed to verify. Please try again.' })
+    } finally {
+      setVerifying(false)
     }
   }
 
@@ -211,6 +265,12 @@ export default function ConnectPage() {
     }
   }
 
+  const openVerifyModal = (platform: 'facebook' | 'instagram') => {
+    setVerifyPlatform(platform)
+    setVerifyResult(null)
+    setShowVerifyModal(true)
+  }
+
   const ChannelCard = ({ channelKey }: { channelKey: ChannelKey }) => {
     const channel = CHANNELS[channelKey]
     const isConnected = getChannelStatus(channelKey)
@@ -245,9 +305,27 @@ export default function ConnectPage() {
                 )
               )}
             </div>
-            <p className="text-gray-400 text-sm">
+            <p className="text-gray-400 text-sm mb-3">
               {isConnected ? channel.connectedText : channel.description}
             </p>
+            
+            {/* Verify buttons for Meta channels */}
+            {channelKey === 'meta' && !isConnected && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => openVerifyModal('facebook')}
+                  className="text-xs bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 px-3 py-1.5 rounded-lg transition-colors"
+                >
+                  Verify Facebook
+                </button>
+                <button
+                  onClick={() => openVerifyModal('instagram')}
+                  className="text-xs bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 px-3 py-1.5 rounded-lg transition-colors"
+                >
+                  Verify Instagram
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -325,8 +403,76 @@ export default function ConnectPage() {
             </div>
 
             <p className="text-center text-gray-500 text-xs mt-4">
-              After connecting, come back here and click "Refresh status"
+              After connecting, come back and click "Verify" to confirm
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Verify Connection Modal */}
+      {showVerifyModal && verifyPlatform && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#0f172a] border border-white/[0.08] rounded-2xl p-6 max-w-md w-full animate-fade-in">
+            <div className="text-center mb-6">
+              <div className={`w-16 h-16 ${verifyPlatform === 'facebook' ? 'bg-blue-500/20' : 'bg-pink-500/20'} rounded-full flex items-center justify-center mx-auto mb-4`}>
+                <span className="text-3xl">{verifyPlatform === 'facebook' ? '📘' : '📸'}</span>
+              </div>
+              <h2 className="text-2xl font-bold mb-2">
+                Verify {verifyPlatform === 'facebook' ? 'Facebook' : 'Instagram'}
+              </h2>
+              <p className="text-gray-400">
+                We'll send a test message to confirm your {verifyPlatform === 'facebook' ? 'Facebook Messenger' : 'Instagram DMs'} connection is working.
+              </p>
+            </div>
+
+            {verifyResult && (
+              <div className={`p-4 rounded-xl mb-6 ${verifyResult.success ? 'bg-green-500/10 border border-green-500/30' : 'bg-red-500/10 border border-red-500/30'}`}>
+                <p className={verifyResult.success ? 'text-green-300' : 'text-red-300'}>
+                  {verifyResult.message}
+                </p>
+              </div>
+            )}
+
+            <div className="space-y-3">
+              {!verifyResult?.success && (
+                <button
+                  onClick={() => verifyConnection(verifyPlatform)}
+                  disabled={verifying}
+                  className={`w-full py-3 rounded-xl font-semibold transition-all ${
+                    verifyPlatform === 'facebook' 
+                      ? 'bg-blue-500 hover:bg-blue-600 text-white' 
+                      : 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white'
+                  } disabled:opacity-50`}
+                >
+                  {verifying ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Verifying...
+                    </span>
+                  ) : (
+                    `Send Test Message`
+                  )}
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setShowVerifyModal(false)
+                  setVerifyResult(null)
+                }}
+                className="w-full py-3 text-gray-400 hover:text-white transition-colors"
+              >
+                {verifyResult?.success ? 'Done' : 'Cancel'}
+              </button>
+            </div>
+
+            {!verifyResult && (
+              <p className="text-center text-gray-500 text-xs mt-4">
+                Make sure you've connected your account in GHL first
+              </p>
+            )}
           </div>
         </div>
       )}
