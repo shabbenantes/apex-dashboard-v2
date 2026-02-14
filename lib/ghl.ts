@@ -273,14 +273,24 @@ export interface IntegrationStatus {
     handle?: string
     accountId?: string
   }
+  tiktok: {
+    connected: boolean
+    handle?: string
+    accountId?: string
+  }
 }
 
 export async function getIntegrationStatus(locationId: string, apiKey: string): Promise<IntegrationStatus> {
+  let fbConnected = false
+  let igConnected = false
+  let tiktokConnected = false
+  let fbPageName: string | undefined
+  let igHandle: string | undefined
+
   try {
-    // Check for Facebook/Instagram by looking at conversation types
-    // If there are FB/IG conversations, the integration is connected
-    const response = await fetch(
-      `${GHL_API_BASE}/conversations/search?locationId=${locationId}&limit=50`,
+    // Method 1: Check GHL integrations endpoint directly
+    const integrationsRes = await fetch(
+      `${GHL_API_BASE}/locations/${locationId}/integrations`,
       {
         headers: {
           'Authorization': `Bearer ${apiKey}`,
@@ -288,34 +298,41 @@ export async function getIntegrationStatus(locationId: string, apiKey: string): 
         },
       }
     )
-
-    if (!response.ok) {
-      return {
-        facebook: { connected: false },
-        instagram: { connected: false },
+    
+    if (integrationsRes.ok) {
+      const intData = await integrationsRes.json()
+      const integrations = intData.integrations || []
+      
+      // Check for Facebook/Instagram integration
+      for (const int of integrations) {
+        const name = (int.name || int.type || '').toLowerCase()
+        if (name.includes('facebook') || name.includes('meta')) {
+          fbConnected = int.connected || int.active || !!int.pageId
+          fbPageName = int.pageName || int.name || 'Connected'
+          // Meta integration usually includes Instagram
+          if (int.instagramConnected || int.instagram) {
+            igConnected = true
+            igHandle = int.instagramHandle || 'Connected'
+          }
+        }
+        if (name.includes('instagram')) {
+          igConnected = int.connected || int.active || !!int.accountId
+          igHandle = int.handle || int.username || 'Connected'
+        }
+        if (name.includes('tiktok')) {
+          tiktokConnected = int.connected || int.active || !!int.accountId
+        }
       }
     }
+  } catch (e) {
+    console.log('Could not fetch integrations endpoint, falling back to conversation check')
+  }
 
-    const data = await response.json()
-    const conversations = data.conversations || []
-    
-    // Check for Facebook conversations
-    const fbConvo = conversations.find((c: any) => 
-      c.type === 'TYPE_FACEBOOK' || c.type === 'FB'
-    )
-    
-    // Check for Instagram conversations
-    const igConvo = conversations.find((c: any) => 
-      c.type === 'TYPE_INSTAGRAM' || c.type === 'IG'
-    )
-
-    // Also try to get location info which might have FB page details
-    let fbPageName = 'Connected'
-    let igHandle = 'Connected'
-    
+  // Method 2: Fallback - check for existing conversations
+  if (!fbConnected && !igConnected) {
     try {
-      const locationRes = await fetch(
-        `${GHL_API_BASE}/locations/${locationId}`,
+      const response = await fetch(
+        `${GHL_API_BASE}/conversations/search?locationId=${locationId}&limit=50`,
         {
           headers: {
             'Authorization': `Bearer ${apiKey}`,
@@ -323,34 +340,76 @@ export async function getIntegrationStatus(locationId: string, apiKey: string): 
           },
         }
       )
-      if (locationRes.ok) {
-        const locData = await locationRes.json()
-        // Try to extract social info from location data
-        if (locData.location?.social?.facebookUrl) {
-          const fbUrl = locData.location.social.facebookUrl
-          fbPageName = fbUrl.split('/').pop() || 'Connected'
+
+      if (response.ok) {
+        const data = await response.json()
+        const conversations = data.conversations || []
+        
+        // Check for Facebook conversations
+        const fbConvo = conversations.find((c: any) => {
+          const type = (c.type || c.lastMessageType || '').toUpperCase()
+          return type.includes('FACEBOOK') || type === 'FB' || type === 'TYPE_FACEBOOK'
+        })
+        
+        // Check for Instagram conversations
+        const igConvo = conversations.find((c: any) => {
+          const type = (c.type || c.lastMessageType || '').toUpperCase()
+          return type.includes('INSTAGRAM') || type === 'IG' || type === 'TYPE_INSTAGRAM'
+        })
+
+        if (fbConvo) {
+          fbConnected = true
+          fbPageName = fbPageName || 'Connected'
+        }
+        if (igConvo) {
+          igConnected = true
+          igHandle = igHandle || 'Connected'
         }
       }
     } catch (e) {
-      // Ignore - we'll use defaults
+      console.error('Failed to check conversations:', e)
     }
+  }
 
-    return {
-      facebook: {
-        connected: !!fbConvo,
-        pageName: fbConvo ? fbPageName : undefined,
-      },
-      instagram: {
-        connected: !!igConvo,
-        handle: igConvo ? igHandle : undefined,
-      },
+  // Method 3: Check location social settings
+  try {
+    const locationRes = await fetch(
+      `${GHL_API_BASE}/locations/${locationId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Version': GHL_API_VERSION,
+        },
+      }
+    )
+    if (locationRes.ok) {
+      const locData = await locationRes.json()
+      const social = locData.location?.social || locData.social || {}
+      
+      // If social URLs are set, it might indicate connection
+      if (social.facebookUrl && !fbConnected) {
+        fbPageName = social.facebookUrl.split('/').pop() || fbPageName
+      }
+      if (social.instagram && !igConnected) {
+        igHandle = social.instagram.replace('@', '') || igHandle
+      }
     }
-  } catch (error) {
-    console.error('Failed to get integration status:', error)
-    return {
-      facebook: { connected: false },
-      instagram: { connected: false },
-    }
+  } catch (e) {
+    // Ignore - just extra info
+  }
+
+  return {
+    facebook: {
+      connected: fbConnected,
+      pageName: fbConnected ? fbPageName : undefined,
+    },
+    instagram: {
+      connected: igConnected,
+      handle: igConnected ? igHandle : undefined,
+    },
+    tiktok: {
+      connected: tiktokConnected,
+    },
   }
 }
 
