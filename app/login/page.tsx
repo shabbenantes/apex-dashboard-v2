@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ApexSession } from '@/lib/session'
 
@@ -11,15 +11,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
-  const [isPWA, setIsPWA] = useState(false)
-  const [showCodeInput, setShowCodeInput] = useState(false)
-
-  // Detect PWA/standalone mode
-  useEffect(() => {
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-                         (window.navigator as any).standalone === true
-    setIsPWA(isStandalone)
-  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -27,11 +18,11 @@ export default function LoginPage() {
     setError('')
 
     try {
-      // Request login code (works for both magic link and code entry)
+      // Always request a code
       const res = await fetch('/api/auth/request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, sendCode: isPWA || showCodeInput }),
+        body: JSON.stringify({ email, sendCode: true }),
       })
 
       const data = await res.json()
@@ -42,7 +33,7 @@ export default function LoginPage() {
         setError(data.error || 'Something went wrong')
       }
     } catch {
-      setError('Failed to send login link')
+      setError('Failed to send login code')
     } finally {
       setLoading(false)
     }
@@ -134,27 +125,14 @@ export default function LoginPage() {
                     Sending...
                   </span>
                 ) : (
-                  isPWA || showCodeInput ? 'Send Login Code' : 'Send Magic Link'
+                  'Send Login Code'
                 )}
               </button>
             </form>
 
             <p className="text-center text-gray-500 text-sm mt-6">
-              {isPWA || showCodeInput 
-                ? "We'll send you a 6-digit code to enter below."
-                : "We'll send you a link to sign in — no password needed."
-              }
+              We'll send you a 6-digit code to sign in — no password needed.
             </p>
-
-            {/* Toggle for desktop users who want code-based auth */}
-            {!isPWA && (
-              <button
-                onClick={() => setShowCodeInput(!showCodeInput)}
-                className="text-apex-orange hover:text-apex-orange-hover text-xs mt-4 w-full text-center"
-              >
-                {showCodeInput ? 'Use magic link instead' : 'Use login code instead'}
-              </button>
-            )}
           </div>
         ) : (
           <div className="card animate-fade-in">
@@ -166,53 +144,44 @@ export default function LoginPage() {
               </div>
               <h2 className="text-xl font-semibold mb-2">Check your email</h2>
               <p className="text-gray-400">
-                We sent a {isPWA || showCodeInput ? '6-digit code' : 'magic link'} to <span className="text-white font-medium">{email}</span>
+                We sent a 6-digit code to <span className="text-white font-medium">{email}</span>
               </p>
             </div>
 
-            {/* Code entry for PWA users */}
-            {(isPWA || showCodeInput) && (
-              <form onSubmit={handleCodeSubmit} className="mb-6">
-                <label htmlFor="code" className="block text-sm font-medium text-gray-300 mb-2">
-                  Enter your login code
-                </label>
-                <input
-                  type="text"
-                  id="code"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  className="input text-center text-2xl tracking-[0.5em] font-mono"
-                  placeholder="000000"
-                  maxLength={6}
-                  autoComplete="one-time-code"
-                  required
-                />
-                
-                {error && (
-                  <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
-                    {error}
-                  </div>
-                )}
+            <form onSubmit={handleCodeSubmit} className="mb-6">
+              <label htmlFor="code" className="block text-sm font-medium text-gray-300 mb-2">
+                Enter your login code
+              </label>
+              <input
+                type="text"
+                id="code"
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                className="input text-center text-2xl tracking-[0.5em] font-mono"
+                placeholder="000000"
+                maxLength={6}
+                autoComplete="one-time-code"
+                required
+              />
+              
+              {error && (
+                <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+                  {error}
+                </div>
+              )}
 
-                <button
-                  type="submit"
-                  disabled={loading || code.length !== 6}
-                  className="btn-primary w-full mt-4"
-                >
-                  {loading ? 'Verifying...' : 'Sign In'}
-                </button>
-              </form>
-            )}
-
-            {!(isPWA || showCodeInput) && (
-              <p className="text-gray-500 text-sm text-center">
-                Click the link in the email to sign in.
-              </p>
-            )}
+              <button
+                type="submit"
+                disabled={loading || code.length !== 6}
+                className="btn-primary w-full mt-4"
+              >
+                {loading ? 'Verifying...' : 'Sign In'}
+              </button>
+            </form>
 
             <button
               onClick={() => { setSent(false); setError(''); setCode(''); }}
-              className="text-apex-orange hover:text-apex-orange-hover mt-4 text-sm w-full text-center"
+              className="text-apex-orange hover:text-apex-orange-hover text-sm w-full text-center"
             >
               Use a different email
             </button>
