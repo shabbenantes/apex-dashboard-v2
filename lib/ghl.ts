@@ -345,16 +345,20 @@ export async function getIntegrationStatus(locationId: string, apiKey: string): 
         const data = await response.json()
         const conversations = data.conversations || []
         
-        // Check for Facebook conversations
+        // Check for Facebook conversations - check BOTH type and lastMessageType
         const fbConvo = conversations.find((c: any) => {
-          const type = (c.type || c.lastMessageType || '').toUpperCase()
-          return type.includes('FACEBOOK') || type === 'FB' || type === 'TYPE_FACEBOOK'
+          const typeField = (c.type || '').toUpperCase()
+          const msgTypeField = (c.lastMessageType || '').toUpperCase()
+          const isFB = (t: string) => t.includes('FACEBOOK') || t === 'FB' || t === 'TYPE_FACEBOOK'
+          return isFB(typeField) || isFB(msgTypeField)
         })
         
-        // Check for Instagram conversations
+        // Check for Instagram conversations - check BOTH type and lastMessageType
         const igConvo = conversations.find((c: any) => {
-          const type = (c.type || c.lastMessageType || '').toUpperCase()
-          return type.includes('INSTAGRAM') || type === 'IG' || type === 'TYPE_INSTAGRAM'
+          const typeField = (c.type || '').toUpperCase()
+          const msgTypeField = (c.lastMessageType || '').toUpperCase()
+          const isIG = (t: string) => t.includes('INSTAGRAM') || t === 'IG' || t === 'TYPE_INSTAGRAM'
+          return isIG(typeField) || isIG(msgTypeField)
         })
 
         if (fbConvo) {
