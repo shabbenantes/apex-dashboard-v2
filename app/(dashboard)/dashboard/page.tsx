@@ -5,6 +5,9 @@ import { ApexSession, SessionData } from '@/lib/session'
 import StatsCard from '@/components/StatsCard'
 import AddToHomeScreen from '@/components/AddToHomeScreen'
 import SetupChecklist from '@/components/SetupChecklist'
+import Analytics from '@/components/Analytics'
+import QuickActions from '@/components/QuickActions'
+import ReferralBanner from '@/components/ReferralBanner'
 
 interface Stats {
   messagesThisWeek: number
@@ -233,7 +236,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <StatsCard
           title="Messages This Week"
           value={stats.messagesThisWeek}
@@ -255,6 +258,12 @@ export default function DashboardPage() {
           className="animate-fade-in delay-3"
         />
       </div>
+
+      {/* Quick Actions */}
+      <QuickActions />
+
+      {/* Analytics Chart */}
+      <Analytics />
 
       {/* Recent Conversations */}
       <div className="bg-white rounded-2xl border border-slate-200 p-6 animate-fade-in mb-6">
@@ -330,6 +339,9 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Referral Banner */}
+      <ReferralBanner />
     </div>
   )
 }
