@@ -56,11 +56,8 @@ export async function GET(request: NextRequest) {
       ? `https://app.gohighlevel.com/v2/location/${customer.ghlLocationId}`
       : 'https://app.gohighlevel.com'
 
-    // Get GHL credentials (email is the customer email, password is set during onboarding)
-    const ghlCredentials = customer.ghlCredentials || {
-      email: customer.email,
-      password: 'Apex2026!' // GHL requires uppercase, lowercase, number, special char
-    }
+    // Get GHL credentials from stored customer data
+    const ghlCredentials = customer.ghlCredentials || null
 
     return NextResponse.json({
       completedAt: onboarding.completedAt || null,
