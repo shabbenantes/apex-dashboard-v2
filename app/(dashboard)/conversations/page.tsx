@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { ApexSession } from '@/lib/session'
 
 interface Conversation {
@@ -8,93 +9,61 @@ interface Conversation {
   name: string
   lastMessage: string
   time: string
+  platform: 'facebook' | 'instagram'
   unread: boolean
-  messageCount: number
-  type: string
-  direction: string
   needsAttention?: boolean
-  isToday?: boolean
 }
-
-const PAGE_SIZE = 20
 
 export default function ConversationsPage() {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [filter, setFilter] = useState<'all' | 'unread'>('all')
-  const [hasMore, setHasMore] = useState(true)
-  const [page, setPage] = useState(1)
-
-  async function fetchConversations(pageNum: number = 1, append: boolean = false) {
-    try {
-      if (append) {
-        setLoadingMore(true)
-      } else {
-        setLoading(true)
-      }
-      
-      const token = ApexSession.getToken()
-      const res = await fetch(`/api/conversations?limit=${PAGE_SIZE}&offset=${(pageNum - 1) * PAGE_SIZE}`, { 
-        cache: 'no-store',
-        headers: { 
-          'Cache-Control': 'no-cache',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-      })
-      if (res.ok) {
-        const data = await res.json()
-        const newConversations = data.conversations || []
-        
-        if (append) {
-          setConversations(prev => [...prev, ...newConversations])
-        } else {
-          setConversations(newConversations)
-        }
-        
-        setHasMore(newConversations.length >= PAGE_SIZE)
-        setError(null)
-      } else {
-        setError('Failed to load conversations')
-      }
-    } catch (err) {
-      console.error('Failed to fetch conversations:', err)
-      setError('Failed to load conversations')
-    } finally {
-      setLoading(false)
-      setLoadingMore(false)
-    }
-  }
+  const [filter, setFilter] = useState<'all' | 'needs_attention'>('all')
 
   useEffect(() => {
-    fetchConversations(1, false)
+    async function fetchConversations() {
+      const token = ApexSession.getToken()
+      if (!token) {
+        setLoading(false)
+        return
+      }
+
+      try {
+        const res = await fetch('/api/conversations', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setConversations(data.conversations || [])
+        }
+      } catch (err) {
+        console.error('Failed to fetch conversations:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchConversations()
   }, [])
 
-  function loadMore() {
-    const nextPage = page + 1
-    setPage(nextPage)
-    fetchConversations(nextPage, true)
-  }
-
-  const filteredConversations = filter === 'unread' 
-    ? conversations.filter(c => c.unread)
+  const filteredConversations = filter === 'needs_attention'
+    ? conversations.filter(c => c.needsAttention)
     : conversations
+
+  const needsAttentionCount = conversations.filter(c => c.needsAttention).length
 
   if (loading) {
     return (
-      <div className="max-w-4xl">
-        <div className="mb-8 animate-fade-in">
-          <h1 className="text-3xl font-bold mb-2">Conversations</h1>
-          <p className="text-gray-400">Loading conversations...</p>
-        </div>
-        <div className="card animate-pulse">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="flex items-center gap-4 p-4 border-b border-white/[0.08] last:border-0">
-              <div className="w-12 h-12 rounded-full bg-white/10"></div>
-              <div className="flex-1">
-                <div className="h-4 bg-white/10 rounded w-1/4 mb-2"></div>
-                <div className="h-3 bg-white/10 rounded w-3/4"></div>
+      <div className="max-w-2xl mx-auto">
+        <div className="h-8 bg-slate-100 rounded w-1/3 mb-6 animate-pulse"></div>
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="bg-white rounded-2xl border border-slate-200 p-4 animate-pulse">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-slate-100 rounded-full"></div>
+                <div className="flex-1">
+                  <div className="h-4 bg-slate-100 rounded w-1/3 mb-2"></div>
+                  <div className="h-3 bg-slate-100 rounded w-2/3"></div>
+                </div>
               </div>
             </div>
           ))}
@@ -104,159 +73,122 @@ export default function ConversationsPage() {
   }
 
   return (
-    <div className="max-w-4xl">
+    <div className="max-w-2xl mx-auto pb-24 lg:pb-8">
       {/* Header */}
-      <div className="mb-8 animate-fade-in">
-        <h1 className="text-3xl font-bold mb-2">Conversations</h1>
-        <p className="text-gray-400">
-          All messages handled by your AI assistant.
-        </p>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold text-slate-900">Conversations</h1>
+        {needsAttentionCount > 0 && (
+          <span className="px-2.5 py-1 bg-orange-100 text-orange-600 text-sm font-semibold rounded-full">
+            {needsAttentionCount} need reply
+          </span>
+        )}
       </div>
 
-      {error && (
-        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400">
-          {error}
-        </div>
-      )}
-
-      {/* Filters */}
-      <div className="flex items-center gap-4 mb-6 animate-fade-in delay-1">
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-gray-400">Filter:</span>
-          <button 
-            onClick={() => setFilter('all')}
-            className={`px-3 py-1.5 rounded-lg font-medium transition-colors ${
-              filter === 'all' 
-                ? 'bg-orange-500/20 text-orange-400' 
-                : 'hover:bg-white/5 text-gray-400'
-            }`}
-          >
-            All
-          </button>
-          <button 
-            onClick={() => setFilter('unread')}
-            className={`px-3 py-1.5 rounded-lg font-medium transition-colors ${
-              filter === 'unread' 
-                ? 'bg-orange-500/20 text-orange-400' 
-                : 'hover:bg-white/5 text-gray-400'
-            }`}
-          >
-            Unread
-          </button>
-        </div>
+      {/* Filter Tabs */}
+      <div className="flex gap-2 mb-4">
+        <button
+          onClick={() => setFilter('all')}
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+            filter === 'all'
+              ? 'bg-slate-900 text-white'
+              : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+          }`}
+        >
+          All ({conversations.length})
+        </button>
+        <button
+          onClick={() => setFilter('needs_attention')}
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+            filter === 'needs_attention'
+              ? 'bg-orange-500 text-white'
+              : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+          }`}
+        >
+          Needs Reply ({needsAttentionCount})
+        </button>
       </div>
 
-      {/* Conversations List */}
+      {/* Conversation List */}
       {filteredConversations.length === 0 ? (
-        <div className="card text-center py-12 animate-fade-in delay-2">
-          <div className="w-16 h-16 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
+          <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold mb-2">No conversations yet</h3>
-          <p className="text-gray-400 text-sm">
-            When customers message your Facebook or Instagram page, their conversations will appear here.
-          </p>
+          {filter === 'needs_attention' ? (
+            <>
+              <p className="font-medium text-slate-900 mb-1">All caught up! 🎉</p>
+              <p className="text-sm text-slate-500">No conversations need your attention right now.</p>
+            </>
+          ) : (
+            <>
+              <p className="font-medium text-slate-900 mb-1">No conversations yet</p>
+              <p className="text-sm text-slate-500 mb-4">
+                When customers message your social accounts, they'll appear here.
+              </p>
+              <Link
+                href="/connect"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 text-white text-sm font-semibold rounded-xl hover:bg-orange-600 transition-colors"
+              >
+                Connect accounts
+              </Link>
+            </>
+          )}
         </div>
       ) : (
-        <div className="space-y-3 animate-fade-in delay-2">
-          {filteredConversations.map((convo) => (
-            <a
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+          {filteredConversations.map((convo, i) => (
+            <Link
               key={convo.id}
               href={`/conversations/${convo.id}`}
-              className="card block hover:bg-white/[0.05] transition-colors group"
+              className={`flex items-center gap-3 p-4 hover:bg-slate-50 transition-colors ${
+                i !== filteredConversations.length - 1 ? 'border-b border-slate-100' : ''
+              }`}
             >
-              {/* Top row: Avatar, Name, Badges */}
-              <div className="flex items-center gap-3 mb-3">
-                <div className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 ${
-                  convo.needsAttention 
-                    ? 'bg-orange-500/20' 
-                    : 'bg-white/10'
+              {/* Avatar */}
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
+                convo.needsAttention ? 'bg-orange-100' : 'bg-slate-100'
+              }`}>
+                <span className={`text-sm font-semibold ${
+                  convo.needsAttention ? 'text-orange-600' : 'text-slate-600'
                 }`}>
-                  <span className={`text-base font-medium ${convo.needsAttention ? 'text-orange-400' : 'text-gray-300'}`}>
-                    {convo.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-                  </span>
-                </div>
+                  {(convo.name || 'U')[0].toUpperCase()}
+                </span>
+              </div>
 
-                <div className="flex-1 min-w-0">
-                  <span className={`font-semibold ${convo.unread ? 'text-white' : 'text-gray-200'}`}>
-                    {convo.name}
+              {/* Content */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className="font-semibold text-slate-900 truncate">{convo.name || 'Unknown'}</span>
+                  {/* Platform Badge */}
+                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                    convo.platform === 'instagram' 
+                      ? 'bg-purple-100 text-purple-600' 
+                      : 'bg-blue-100 text-blue-600'
+                  }`}>
+                    {convo.platform === 'instagram' ? 'IG' : 'FB'}
                   </span>
-                </div>
-
-                <div className="flex items-center gap-2 flex-shrink-0">
                   {convo.needsAttention && (
-                    <div className="text-xs font-medium text-orange-400 bg-orange-500/10 px-2.5 py-1 rounded-full">
-                      Needs Attention
-                    </div>
+                    <span className="text-[10px] font-semibold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded">
+                      Needs reply
+                    </span>
                   )}
-                  
-                  {convo.isToday && !convo.needsAttention && (
-                    <div className="text-xs font-medium text-green-400 bg-green-500/10 px-2.5 py-1 rounded-full">
-                      Today
-                    </div>
-                  )}
-                  
-                  <div className="text-xs font-medium text-gray-400 bg-white/10 px-2.5 py-1 rounded-full">
-                    {convo.type.replace('TYPE_', '')}
-                  </div>
                 </div>
+                <p className="text-sm text-slate-500 truncate">{convo.lastMessage}</p>
+              </div>
 
+              {/* Time */}
+              <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                <span className="text-xs text-slate-400">{convo.time}</span>
                 {convo.unread && (
-                  <div className="w-2.5 h-2.5 bg-orange-500 rounded-full flex-shrink-0" />
+                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
                 )}
               </div>
-
-              {/* Message preview */}
-              <p className={`text-sm leading-relaxed mb-3 ${convo.unread ? 'text-gray-300' : 'text-gray-400'}`}>
-                {convo.direction === 'outbound' ? '↗️ ' : '↙️ '}
-                {convo.lastMessage}
-              </p>
-
-              {/* Bottom row: Time + Arrow */}
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">{convo.time}</span>
-                <div className="flex items-center gap-1 text-xs text-gray-500 group-hover:text-orange-400 transition-colors">
-                  <span>View conversation</span>
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </div>
-            </a>
+            </Link>
           ))}
         </div>
       )}
-
-      {/* Load More Button */}
-      {hasMore && filteredConversations.length > 0 && (
-        <div className="text-center mt-6">
-          <button
-            onClick={loadMore}
-            disabled={loadingMore}
-            className="px-6 py-3 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 font-medium rounded-xl transition-colors disabled:opacity-50"
-          >
-            {loadingMore ? (
-              <span className="flex items-center gap-2">
-                <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-                Loading...
-              </span>
-            ) : (
-              'Load More Conversations'
-            )}
-          </button>
-        </div>
-      )}
-
-      {/* Info */}
-      <p className="text-center text-gray-600 text-sm mt-6">
-        Showing {filteredConversations.length} conversation{filteredConversations.length !== 1 ? 's' : ''}
-        {!hasMore && filteredConversations.length > 0 && ' • All loaded'}
-      </p>
     </div>
   )
 }

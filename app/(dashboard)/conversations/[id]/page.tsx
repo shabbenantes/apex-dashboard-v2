@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { ApexSession } from '@/lib/session'
 import Link from 'next/link'
 
@@ -18,12 +18,14 @@ interface ConversationDetail {
   contactName: string
   contactEmail?: string
   contactPhone?: string
+  platform: 'facebook' | 'instagram'
   type: string
   messages: Message[]
 }
 
 export default function ConversationDetailPage() {
   const params = useParams()
+  const router = useRouter()
   const id = params.id as string
   
   const [conversation, setConversation] = useState<ConversationDetail | null>(null)
@@ -31,7 +33,6 @@ export default function ConversationDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [newMessage, setNewMessage] = useState('')
   const [sending, setSending] = useState(false)
-  const [sendError, setSendError] = useState<string | null>(null)
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -45,11 +46,7 @@ export default function ConversationDetailPage() {
       if (showLoading) setLoading(true)
       const token = ApexSession.getToken()
       const res = await fetch(`/api/conversations/${id}`, { 
-        cache: 'no-store',
-        headers: { 
-          'Cache-Control': 'no-cache',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
       })
       if (res.ok) {
         const data = await res.json()
@@ -69,9 +66,7 @@ export default function ConversationDetailPage() {
   }
 
   useEffect(() => {
-    if (id) {
-      fetchConversation(true)
-    }
+    if (id) fetchConversation(true)
   }, [id])
 
   useEffect(() => {
@@ -80,11 +75,7 @@ export default function ConversationDetailPage() {
 
   useEffect(() => {
     if (!id || error) return
-    
-    const interval = setInterval(() => {
-      fetchConversation(false)
-    }, 5000)
-    
+    const interval = setInterval(() => fetchConversation(false), 5000)
     return () => clearInterval(interval)
   }, [id, error])
 
@@ -92,8 +83,6 @@ export default function ConversationDetailPage() {
     if (!newMessage.trim() || sending) return
     
     setSending(true)
-    setSendError(null)
-    
     try {
       const token = ApexSession.getToken()
       const res = await fetch(`/api/conversations/${id}`, {
@@ -115,13 +104,9 @@ export default function ConversationDetailPage() {
         }
         setNewMessage('')
         inputRef.current?.focus()
-      } else {
-        const errorData = await res.json().catch(() => ({}))
-        setSendError(errorData.error || 'Failed to send message')
       }
     } catch (err) {
       console.error('Failed to send message:', err)
-      setSendError('Failed to send message')
     } finally {
       setSending(false)
     }
@@ -140,8 +125,8 @@ export default function ConversationDetailPage() {
     const diff = now.getTime() - date.getTime()
     
     if (diff < 60000) return 'Just now'
-    if (diff < 3600000) return `${Math.floor(diff / 60000)} min ago`
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)} hours ago`
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`
     
     return date.toLocaleDateString('en-US', { 
       month: 'short', 
@@ -153,20 +138,20 @@ export default function ConversationDetailPage() {
 
   if (loading) {
     return (
-      <div className="max-w-4xl">
-        <div className="mb-6">
-          <Link href="/conversations" className="text-gray-400 hover:text-white transition-colors inline-flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Conversations
-          </Link>
+      <div className="max-w-2xl mx-auto">
+        <div className="h-6 bg-slate-100 rounded w-24 mb-6 animate-pulse"></div>
+        <div className="bg-white rounded-2xl border border-slate-200 p-4 mb-4 animate-pulse">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-slate-100 rounded-full"></div>
+            <div className="h-5 bg-slate-100 rounded w-1/3"></div>
+          </div>
         </div>
-        <div className="card animate-pulse">
-          <div className="h-8 bg-white/10 rounded w-1/3 mb-4"></div>
-          <div className="space-y-4">
+        <div className="bg-white rounded-2xl border border-slate-200 p-4 animate-pulse">
+          <div className="space-y-3">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-16 bg-white/10 rounded"></div>
+              <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'}`}>
+                <div className="h-12 bg-slate-100 rounded-2xl w-2/3"></div>
+              </div>
             ))}
           </div>
         </div>
@@ -176,72 +161,70 @@ export default function ConversationDetailPage() {
 
   if (error || !conversation) {
     return (
-      <div className="max-w-4xl">
-        <div className="mb-6">
-          <Link href="/conversations" className="text-gray-400 hover:text-white transition-colors inline-flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Conversations
-          </Link>
-        </div>
-        <div className="card text-center py-12">
-          <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div className="max-w-2xl mx-auto">
+        <button onClick={() => router.back()} className="flex items-center gap-2 text-slate-500 hover:text-slate-900 mb-6 transition-colors">
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back
+        </button>
+        <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
+          <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-7 h-7 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold mb-2">{error || 'Something went wrong'}</h3>
-          <p className="text-gray-400 text-sm">
-            This conversation may have been deleted or you don't have access.
-          </p>
+          <p className="font-medium text-slate-900 mb-1">{error || 'Something went wrong'}</p>
+          <p className="text-sm text-slate-500">This conversation may have been deleted.</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="max-w-4xl h-[calc(100vh-120px)] flex flex-col">
-      {/* Back Link */}
-      <div className="mb-4 animate-fade-in flex-shrink-0">
-        <Link href="/conversations" className="text-gray-400 hover:text-white transition-colors inline-flex items-center gap-2">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Back to Conversations
-        </Link>
-      </div>
+    <div className="max-w-2xl mx-auto h-[calc(100vh-140px)] lg:h-[calc(100vh-100px)] flex flex-col pb-20 lg:pb-0">
+      {/* Back Button */}
+      <button onClick={() => router.back()} className="flex items-center gap-2 text-slate-500 hover:text-slate-900 mb-4 transition-colors">
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+        Back
+      </button>
 
       {/* Contact Header */}
-      <div className="card mb-4 animate-fade-in flex-shrink-0">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
-            <span className="text-lg font-medium text-gray-300">
-              {conversation.contactName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+      <div className="bg-white rounded-2xl border border-slate-200 p-4 mb-4 flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
+            <span className="text-sm font-semibold text-slate-600">
+              {(conversation.contactName || 'U')[0].toUpperCase()}
             </span>
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-bold truncate">{conversation.contactName}</h1>
-            <div className="flex items-center gap-3 text-sm text-gray-400 mt-0.5">
-              {conversation.contactPhone && (
-                <span className="truncate">{conversation.contactPhone}</span>
-              )}
-              <span className="px-2 py-0.5 bg-white/10 rounded text-xs flex-shrink-0">
-                {conversation.type.replace('TYPE_', '')}
+            <h1 className="font-semibold text-slate-900 truncate">{conversation.contactName}</h1>
+            <div className="flex items-center gap-2">
+              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                conversation.platform === 'instagram' 
+                  ? 'bg-purple-100 text-purple-600' 
+                  : 'bg-blue-100 text-blue-600'
+              }`}>
+                {conversation.platform === 'instagram' ? 'Instagram' : 'Facebook'}
               </span>
+              {conversation.contactPhone && (
+                <span className="text-xs text-slate-500">{conversation.contactPhone}</span>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Messages Container */}
-      <div className="card flex-1 flex flex-col min-h-0 animate-fade-in delay-1">
-        {/* Messages Scroll Area */}
-        <div className="flex-1 overflow-y-auto px-1 -mx-1">
+      {/* Messages */}
+      <div className="bg-white rounded-2xl border border-slate-200 flex-1 flex flex-col min-h-0 overflow-hidden">
+        {/* Messages List */}
+        <div className="flex-1 overflow-y-auto p-4">
           {conversation.messages.length === 0 ? (
-            <p className="text-gray-400 text-center py-8">No messages in this conversation yet.</p>
+            <p className="text-slate-400 text-center py-8">No messages yet.</p>
           ) : (
-            <div className="space-y-3 py-2">
+            <div className="space-y-3">
               {conversation.messages.map((message) => (
                 <div 
                   key={message.id}
@@ -249,16 +232,15 @@ export default function ConversationDetailPage() {
                 >
                   <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
                     message.direction === 'outbound' 
-                      ? 'bg-orange-500 text-white rounded-br-md' 
-                      : 'bg-white/10 text-gray-200 rounded-bl-md'
+                      ? 'bg-[#0084ff] text-white rounded-br-md' 
+                      : 'bg-slate-100 text-slate-900 rounded-bl-md'
                   }`}>
                     <p className="whitespace-pre-wrap break-words text-[15px]">{message.body}</p>
-                    <p className={`text-xs mt-1 ${
-                      message.direction === 'outbound' ? 'text-white/60' : 'text-gray-500'
+                    <p className={`text-[10px] mt-1 ${
+                      message.direction === 'outbound' ? 'text-white/70' : 'text-slate-400'
                     }`}>
                       {formatTime(message.dateAdded)}
-                      {message.direction === 'outbound' && message.type !== 'Custom' && ' • 🤖 AI'}
-                      {message.direction === 'outbound' && message.type === 'Custom' && ' • You'}
+                      {message.direction === 'outbound' && ' • AI'}
                     </p>
                   </div>
                 </div>
@@ -268,14 +250,9 @@ export default function ConversationDetailPage() {
           )}
         </div>
 
-        {/* Message Composer */}
-        <div className="border-t border-white/[0.08] pt-4 mt-4 flex-shrink-0">
-          {sendError && (
-            <div className="mb-3 p-2 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">
-              {sendError}
-            </div>
-          )}
-          <div className="flex gap-3">
+        {/* Composer */}
+        <div className="border-t border-slate-200 p-3 flex-shrink-0">
+          <div className="flex gap-2">
             <textarea
               ref={inputRef}
               value={newMessage}
@@ -284,35 +261,23 @@ export default function ConversationDetailPage() {
               placeholder="Type a message..."
               disabled={sending}
               rows={1}
-              className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 resize-none disabled:opacity-50 transition-all"
-              style={{ minHeight: '48px', maxHeight: '120px' }}
+              className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 resize-none disabled:opacity-50"
+              style={{ minHeight: '44px', maxHeight: '100px' }}
             />
             <button
               onClick={handleSend}
               disabled={!newMessage.trim() || sending}
-              className="px-5 py-3 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
               {sending ? (
-                <>
-                  <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                  <span>Sending</span>
-                </>
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
               ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                  </svg>
-                  <span>Send</span>
-                </>
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
               )}
             </button>
           </div>
-          <p className="text-xs text-gray-500 mt-2">
-            Press Enter to send • Shift+Enter for new line
-          </p>
         </div>
       </div>
     </div>

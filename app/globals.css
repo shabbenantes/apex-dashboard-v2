@@ -31,6 +31,11 @@
   box-sizing: border-box;
 }
 
+/* Safe area for mobile devices with home indicator */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 body {
   background: var(--bg-soft);
   color: var(--text);
