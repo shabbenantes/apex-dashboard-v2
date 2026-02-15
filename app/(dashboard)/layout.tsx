@@ -62,7 +62,7 @@ export default function DashboardLayout({
       <BottomNav />
       
       {/* Main content */}
-      <main className="lg:ml-64 p-4 lg:p-8 pt-18 lg:pt-8 pb-20 lg:pb-8">
+      <main className="lg:ml-64 p-4 lg:p-8 pt-20 lg:pt-8 pb-24 lg:pb-8">
         <TrialBanner />
         {children}
       </main>
