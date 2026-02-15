@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ApexSession } from '@/lib/session'
 
-export default function LoginPage() {
+// Component that uses searchParams - needs to be wrapped in Suspense
+function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
@@ -251,5 +252,23 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+// Wrap in Suspense for useSearchParams
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50">
+        <div className="w-full max-w-md text-center">
+          <div className="w-14 h-14 bg-orange-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl animate-pulse">
+            ⚡
+          </div>
+          <p className="text-slate-500">Loading...</p>
+        </div>
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   )
 }
