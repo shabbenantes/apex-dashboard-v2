@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { ApexSession } from '@/lib/session'
 
 interface TrialStatus {
@@ -17,7 +18,10 @@ interface ChannelConfig {
   icon: React.ReactNode
   bgClass: string
   description: string
-  activeText: string
+  connectedText: string
+  available: boolean
+  comingSoon?: boolean
+  platform: string
 }
 
 const CHANNELS: Record<string, ChannelConfig> = {
@@ -34,8 +38,10 @@ const CHANNELS: Record<string, ChannelConfig> = {
       </div>
     ),
     bgClass: 'bg-gradient-to-br from-blue-500/20 to-pink-500/20',
-    description: 'Connect in your account portal, then send yourself a test message',
-    activeText: 'AI is responding to messages',
+    description: 'Respond to Facebook Messenger and Instagram DMs automatically',
+    connectedText: 'Facebook & Instagram connected',
+    available: true,
+    platform: 'facebook',
   },
   tiktok: {
     name: 'TikTok',
@@ -45,37 +51,60 @@ const CHANNELS: Record<string, ChannelConfig> = {
       </svg>
     ),
     bgClass: 'bg-black',
-    description: 'Connect in your account portal, then send yourself a test message',
-    activeText: 'AI is responding to messages',
+    description: 'Respond to TikTok messages automatically',
+    connectedText: 'TikTok connected',
+    available: false,
+    comingSoon: true,
+    platform: 'tiktok',
   },
 }
 
 type ChannelKey = 'meta' | 'tiktok'
 
-interface IntegrationStatus {
-  facebook: { connected: boolean; pageName?: string; verified?: boolean }
-  instagram: { connected: boolean; handle?: string; verified?: boolean }
-  tiktok: { connected: boolean; handle?: string; verified?: boolean }
+interface SocialConnection {
+  connected: boolean
+  pageId?: string
+  pageName?: string
+  accountId?: string
+  handle?: string
+  profilePicture?: string
+  connectedAt?: number
 }
 
-interface OnboardingStatus {
-  ghlPortalUrl?: string
-  ghlCredentials?: {
-    email: string
-    password: string
-  }
+interface ConnectionStatus {
+  facebook: SocialConnection
+  instagram: SocialConnection
+  tiktok: SocialConnection
 }
 
 export default function ConnectPage() {
-  const [status, setStatus] = useState<IntegrationStatus>({
+  const searchParams = useSearchParams()
+  const [status, setStatus] = useState<ConnectionStatus>({
     facebook: { connected: false },
     instagram: { connected: false },
     tiktok: { connected: false },
   })
-  const [onboarding, setOnboarding] = useState<OnboardingStatus>({})
   const [trialStatus, setTrialStatus] = useState<TrialStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [checking, setChecking] = useState(false)
+  const [connectingPlatform, setConnectingPlatform] = useState<string | null>(null)
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const previousStatus = useRef<ConnectionStatus | null>(null)
+
+  // Handle OAuth callback messages
+  useEffect(() => {
+    const success = searchParams.get('success')
+    const error = searchParams.get('error')
+    
+    if (success) {
+      setMessage({ type: 'success', text: success })
+      // Clear URL params
+      window.history.replaceState({}, '', '/dashboard/connect')
+    } else if (error) {
+      setMessage({ type: 'error', text: error })
+      window.history.replaceState({}, '', '/dashboard/connect')
+    }
+  }, [searchParams])
 
   async function fetchTrialStatus() {
     const session = ApexSession.get()
@@ -94,27 +123,73 @@ export default function ConnectPage() {
     }
   }
 
-  const fetchStatus = useCallback(async () => {
+  async function registerTrialAccount(platform: string, accountId: string, accountName: string) {
+    const session = ApexSession.get()
+    if (!session?.email) return
+
     try {
-      const token = ApexSession.getToken()
-      const [intRes, onboardRes] = await Promise.all([
-        fetch('/api/integrations', {
-          headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-          cache: 'no-store',
-        }),
-        fetch('/api/onboarding/status', {
-          headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-          cache: 'no-store',
-        })
-      ])
-      
-      if (intRes.ok) {
-        const newStatus = await intRes.json()
-        setStatus(newStatus)
+      const checkRes = await fetch(`/api/trial/check?platform=${platform}&accountId=${accountId}`)
+      const checkData = await checkRes.json()
+
+      if (!checkData.available) {
+        setMessage({ type: 'error', text: checkData.message || 'This account has already been used for a free trial.' })
+        return false
       }
-      if (onboardRes.ok) {
-        const data = await onboardRes.json()
-        setOnboarding(data)
+
+      const regRes = await fetch('/api/trial/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          platform,
+          accountId,
+          accountName,
+          email: session.email,
+          locationId: session.locationId,
+        }),
+      })
+
+      if (!regRes.ok) {
+        const errData = await regRes.json()
+        setMessage({ type: 'error', text: errData.error || 'Failed to start trial' })
+        return false
+      }
+
+      await fetchTrialStatus()
+      return true
+    } catch (err) {
+      console.error('Failed to register trial:', err)
+      return false
+    }
+  }
+
+  async function fetchStatus() {
+    try {
+      const session = ApexSession.get()
+      if (!session?.email) return
+      
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://apex-dashboard-api-5r3u.onrender.com'
+      const res = await fetch(`${API_URL}/social-connections/${encodeURIComponent(session.email)}`, {
+        cache: 'no-store',
+      })
+      
+      if (res.ok) {
+        const newStatus = await res.json()
+        
+        const prev = previousStatus.current
+        if (prev && !trialStatus?.trialStarted) {
+          if (!prev.facebook?.connected && newStatus.facebook?.connected && newStatus.facebook?.pageId) {
+            await registerTrialAccount('facebook', newStatus.facebook.pageId, newStatus.facebook.pageName || '')
+          }
+          if (!prev.instagram?.connected && newStatus.instagram?.connected && newStatus.instagram?.accountId) {
+            await registerTrialAccount('instagram', newStatus.instagram.accountId, newStatus.instagram.handle || '')
+          }
+          if (!prev.tiktok?.connected && newStatus.tiktok?.connected && newStatus.tiktok?.accountId) {
+            await registerTrialAccount('tiktok', newStatus.tiktok.accountId, newStatus.tiktok.handle || '')
+          }
+        }
+        
+        previousStatus.current = newStatus
+        setStatus(newStatus)
       }
     } catch (err) {
       console.error('Failed to fetch status:', err)
@@ -122,59 +197,159 @@ export default function ConnectPage() {
       setLoading(false)
       setChecking(false)
     }
-  }, [])
+  }
 
   useEffect(() => {
     fetchStatus()
     fetchTrialStatus()
-  }, [fetchStatus])
+  }, [])
 
-  const isMetaActive = status.facebook?.connected || status.instagram?.connected
-  const isTikTokActive = status.tiktok?.connected
+  const isMetaConnected = status.facebook?.connected || status.instagram?.connected
 
-  const getActiveCount = () => {
+  const getChannelStatus = (key: ChannelKey): boolean => {
+    if (key === 'meta') return isMetaConnected
+    return status[key]?.connected || false
+  }
+
+  const getConnectedCount = () => {
     let count = 0
-    if (isMetaActive) count++
-    if (isTikTokActive) count++
+    if (isMetaConnected) count++
+    if (status.tiktok?.connected) count++
     return count
   }
 
-  const openGHLPortal = () => {
-    if (onboarding.ghlPortalUrl) {
-      window.open(onboarding.ghlPortalUrl, '_blank')
+  const handleConnect = (platform: string) => {
+    const session = ApexSession.get()
+    if (!session?.email) {
+      setMessage({ type: 'error', text: 'Please log in first' })
+      return
+    }
+    
+    setConnectingPlatform(platform)
+    
+    // Redirect to OAuth flow
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://apex-dashboard-api-5r3u.onrender.com'
+    window.location.href = `${API_URL}/auth/meta?platform=${platform}&customerId=${encodeURIComponent(session.email)}`
+  }
+
+  const handleDisconnect = async (platform: 'facebook' | 'instagram' | 'tiktok') => {
+    const session = ApexSession.get()
+    if (!session?.email) return
+    
+    if (!confirm(`Are you sure you want to disconnect ${platform}?`)) return
+    
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://apex-dashboard-api-5r3u.onrender.com'
+      const res = await fetch(`${API_URL}/social-connections/${encodeURIComponent(session.email)}/${platform}`, {
+        method: 'DELETE',
+      })
+      
+      if (res.ok) {
+        setMessage({ type: 'success', text: `${platform} disconnected` })
+        await fetchStatus()
+      } else {
+        const err = await res.json()
+        setMessage({ type: 'error', text: err.error || 'Failed to disconnect' })
+      }
+    } catch (err) {
+      console.error('Disconnect error:', err)
+      setMessage({ type: 'error', text: 'Failed to disconnect' })
     }
   }
 
   const ChannelCard = ({ channelKey }: { channelKey: ChannelKey }) => {
     const channel = CHANNELS[channelKey]
-    const isActive = channelKey === 'meta' ? isMetaActive : isTikTokActive
+    const isConnected = getChannelStatus(channelKey)
+    const isConnecting = connectingPlatform === channel.platform
 
     return (
-      <div className="card mb-4">
+      <div className={`card mb-4 ${channel.comingSoon ? 'opacity-60' : ''}`}>
         <div className="flex items-start gap-4">
           <div className={`w-14 h-14 ${channel.bgClass} rounded-xl flex items-center justify-center flex-shrink-0`}>
             {channel.icon}
           </div>
           <div className="flex-1">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold text-lg">{channel.name}</h3>
-              {isActive ? (
-                <span className="flex items-center gap-1.5 text-green-400 text-sm font-medium">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Active
-                </span>
-              ) : (
-                <span className="flex items-center gap-1.5 text-orange-400 text-sm">
-                  <span className="w-2 h-2 bg-orange-400 rounded-full"></span>
-                  Pending
-                </span>
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-lg">{channel.name}</h3>
+                {channel.comingSoon && (
+                  <span className="px-2 py-0.5 bg-orange-500/20 text-orange-400 text-xs rounded-full font-medium">
+                    Coming Soon
+                  </span>
+                )}
+              </div>
+              {!channel.comingSoon && (
+                isConnected ? (
+                  <span className="flex items-center gap-1.5 text-green-400 text-sm">
+                    <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                    Connected
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1.5 text-yellow-400 text-sm">
+                    <span className="w-2 h-2 bg-yellow-400 rounded-full"></span>
+                    Not connected
+                  </span>
+                )
               )}
             </div>
+            
+            {/* Connection details */}
+            {channelKey === 'meta' && isConnected && (
+              <div className="text-sm text-gray-400 mb-3 space-y-1">
+                {status.facebook?.connected && (
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-blue-400" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    </svg>
+                    <span>{status.facebook.pageName || 'Facebook Page'}</span>
+                  </div>
+                )}
+                {status.instagram?.connected && (
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-pink-400" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                    </svg>
+                    <span>@{status.instagram.handle || 'Instagram'}</span>
+                  </div>
+                )}
+              </div>
+            )}
+            
             <p className="text-gray-400 text-sm mb-3">
-              {isActive ? channel.activeText : channel.description}
+              {isConnected ? channel.connectedText : channel.description}
             </p>
+            
+            {/* Action buttons */}
+            {!channel.comingSoon && (
+              <div className="flex gap-2">
+                {isConnected ? (
+                  <button
+                    onClick={() => handleDisconnect('facebook')}
+                    className="text-sm text-red-400 hover:text-red-300 transition-colors"
+                  >
+                    Disconnect
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleConnect(channel.platform)}
+                    disabled={isConnecting}
+                    className="btn-primary py-2 px-4 text-sm disabled:opacity-50"
+                  >
+                    {isConnecting ? (
+                      <>
+                        <svg className="w-4 h-4 animate-spin inline mr-2" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Connecting...
+                      </>
+                    ) : (
+                      'Connect'
+                    )}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -207,9 +382,31 @@ export default function ConnectPage() {
       <div className="mb-8 animate-fade-in">
         <h1 className="text-3xl font-bold mb-2">Connections</h1>
         <p className="text-gray-400">
-          Connect your social accounts so AI can respond to messages.
+          Connect your social accounts to enable AI responses.
         </p>
       </div>
+
+      {/* Success/Error Messages */}
+      {message && (
+        <div className={`mb-6 p-4 rounded-xl border ${
+          message.type === 'success' 
+            ? 'bg-green-500/10 border-green-500/30'
+            : 'bg-red-500/10 border-red-500/30'
+        }`}>
+          <div className="flex items-center justify-between">
+            <div className={`flex items-center gap-2 ${message.type === 'success' ? 'text-green-300' : 'text-red-300'}`}>
+              <span>{message.type === 'success' ? '✅' : '⚠️'}</span>
+              <span>{message.text}</span>
+            </div>
+            <button 
+              onClick={() => setMessage(null)}
+              className={message.type === 'success' ? 'text-green-300 hover:text-white' : 'text-red-300 hover:text-white'}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Trial Status Banner */}
       {trialStatus && (
@@ -244,68 +441,17 @@ export default function ConnectPage() {
         </div>
       )}
 
-      {/* Status Overview */}
+      {/* Stats */}
       <div className="card mb-6 bg-gradient-to-r from-orange-500/10 to-pink-500/10 border-orange-500/20">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-400 mb-1">Active Channels</p>
-            <p className="text-2xl font-bold">{getActiveCount()} / 2</p>
+            <p className="text-sm text-gray-400 mb-1">Connected Channels</p>
+            <p className="text-2xl font-bold">{getConnectedCount()} / 2</p>
           </div>
           <div className="text-4xl">
-            {getActiveCount() === 0 ? '⏳' : getActiveCount() === 2 ? '🚀' : '📱'}
+            {getConnectedCount() === 0 ? '📴' : getConnectedCount() === 1 ? '📱' : '🚀'}
           </div>
         </div>
-      </div>
-
-      {/* How to Connect */}
-      <div className="card mb-6 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border-blue-500/20">
-        <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-          <span>📋</span> How to Connect
-        </h3>
-        <ol className="space-y-3 text-sm">
-          <li className="flex items-start gap-3">
-            <span className="w-6 h-6 bg-orange-500/20 rounded-full flex items-center justify-center flex-shrink-0 text-orange-400 font-bold text-xs">1</span>
-            <div>
-              <p className="text-white font-medium">Open your account portal</p>
-              <p className="text-gray-400">Click the button below to access your portal</p>
-            </div>
-          </li>
-          <li className="flex items-start gap-3">
-            <span className="w-6 h-6 bg-orange-500/20 rounded-full flex items-center justify-center flex-shrink-0 text-orange-400 font-bold text-xs">2</span>
-            <div>
-              <p className="text-white font-medium">Go to Settings → Integrations</p>
-              <p className="text-gray-400">Connect Facebook, Instagram, or TikTok</p>
-            </div>
-          </li>
-          <li className="flex items-start gap-3">
-            <span className="w-6 h-6 bg-orange-500/20 rounded-full flex items-center justify-center flex-shrink-0 text-orange-400 font-bold text-xs">3</span>
-            <div>
-              <p className="text-white font-medium">Send yourself a test message</p>
-              <p className="text-gray-400">Message your own page to verify it's working</p>
-            </div>
-          </li>
-        </ol>
-
-        {onboarding.ghlCredentials && (
-          <div className="mt-4 p-3 bg-white/5 rounded-lg border border-white/10">
-            <p className="text-xs text-gray-400 mb-2">Your portal login:</p>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-400">Email:</span>
-              <span className="text-white font-mono">{onboarding.ghlCredentials.email}</span>
-            </div>
-            <div className="flex justify-between text-sm mt-1">
-              <span className="text-gray-400">Password:</span>
-              <span className="text-white font-mono">{onboarding.ghlCredentials.password}</span>
-            </div>
-          </div>
-        )}
-
-        <button
-          onClick={openGHLPortal}
-          className="btn-primary w-full mt-4"
-        >
-          Open Account Portal →
-        </button>
       </div>
 
       {/* Channel Cards */}
@@ -346,9 +492,9 @@ export default function ConnectPage() {
         <div className="flex items-start gap-3">
           <span className="text-2xl">💬</span>
           <div>
-            <h3 className="font-semibold mb-1">Need help?</h3>
+            <h3 className="font-semibold mb-1">Need help connecting?</h3>
             <p className="text-gray-400 text-sm">
-              We're here to help you get set up.
+              Simply click Connect and authorize Apex to respond to your messages. It takes less than 60 seconds!
             </p>
             <a href="mailto:support@getapexautomation.com" className="text-orange-500 hover:text-orange-400 text-sm font-medium mt-2 inline-block">
               Contact Support →
