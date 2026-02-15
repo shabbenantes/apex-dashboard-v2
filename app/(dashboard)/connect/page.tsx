@@ -295,7 +295,7 @@ export default function ConnectPage() {
             
             {/* Connection details */}
             {channelKey === 'meta' && isConnected && (
-              <div className="text-sm text-gray-400 mb-3 space-y-1">
+              <div className="text-sm text-slate-500 mb-3 space-y-1">
                 {status.facebook?.connected && (
                   <div className="flex items-center gap-2">
                     <svg className="w-4 h-4 text-blue-400" viewBox="0 0 24 24" fill="currentColor">
@@ -315,7 +315,7 @@ export default function ConnectPage() {
               </div>
             )}
             
-            <p className="text-gray-400 text-sm mb-3">
+            <p className="text-slate-500 text-sm mb-3">
               {isConnected ? channel.connectedText : channel.description}
             </p>
             
@@ -325,7 +325,7 @@ export default function ConnectPage() {
                 {isConnected ? (
                   <button
                     onClick={() => handleDisconnect('facebook')}
-                    className="text-sm text-red-400 hover:text-red-300 transition-colors"
+                    className="text-sm text-red-400 hover:text-red-600 transition-colors"
                   >
                     Disconnect
                   </button>
@@ -361,14 +361,14 @@ export default function ConnectPage() {
       <div className="max-w-2xl">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Connections</h1>
-          <p className="text-gray-400">Loading...</p>
+          <p className="text-slate-500">Loading...</p>
         </div>
         <div className="card animate-pulse">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-white/10 rounded-xl"></div>
+            <div className="w-14 h-14 bg-slate-100 rounded-xl"></div>
             <div className="flex-1">
-              <div className="h-5 bg-white/10 rounded w-1/3 mb-2"></div>
-              <div className="h-4 bg-white/10 rounded w-1/2"></div>
+              <div className="h-5 bg-slate-100 rounded w-1/3 mb-2"></div>
+              <div className="h-4 bg-slate-100 rounded w-1/2"></div>
             </div>
           </div>
         </div>
@@ -381,7 +381,7 @@ export default function ConnectPage() {
       {/* Header */}
       <div className="mb-8 animate-fade-in">
         <h1 className="text-3xl font-bold mb-2">Connections</h1>
-        <p className="text-gray-400">
+        <p className="text-slate-500">
           Connect your social accounts to enable AI responses.
         </p>
       </div>
@@ -390,17 +390,17 @@ export default function ConnectPage() {
       {message && (
         <div className={`mb-6 p-4 rounded-xl border ${
           message.type === 'success' 
-            ? 'bg-green-500/10 border-green-500/30'
-            : 'bg-red-500/10 border-red-500/30'
+            ? 'bg-green-50 border-green-200'
+            : 'bg-red-50 border-red-200'
         }`}>
           <div className="flex items-center justify-between">
-            <div className={`flex items-center gap-2 ${message.type === 'success' ? 'text-green-300' : 'text-red-300'}`}>
+            <div className={`flex items-center gap-2 ${message.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
               <span>{message.type === 'success' ? '✅' : '⚠️'}</span>
               <span>{message.text}</span>
             </div>
             <button 
               onClick={() => setMessage(null)}
-              className={message.type === 'success' ? 'text-green-300 hover:text-white' : 'text-red-300 hover:text-white'}
+              className={message.type === 'success' ? 'text-green-600 hover:text-white' : 'text-red-600 hover:text-white'}
             >
               ✕
             </button>
@@ -412,28 +412,28 @@ export default function ConnectPage() {
       {trialStatus && (
         <div className={`mb-6 p-4 rounded-xl border ${
           trialStatus.expired 
-            ? 'bg-red-500/10 border-red-500/30'
+            ? 'bg-red-50 border-red-200'
             : trialStatus.trialStarted
-              ? 'bg-green-500/10 border-green-500/30'
-              : 'bg-orange-500/10 border-orange-500/30'
+              ? 'bg-green-50 border-green-200'
+              : 'bg-orange-50 border-orange-200'
         }`}>
           {trialStatus.expired ? (
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-red-300">
+              <div className="flex items-center gap-2 text-red-600">
                 <span>⏰</span>
                 <span>Your free trial has ended</span>
               </div>
-              <a href="/billing" className="text-sm text-red-300 underline hover:no-underline">
+              <a href="/billing" className="text-sm text-red-600 underline hover:no-underline">
                 Upgrade to continue →
               </a>
             </div>
           ) : trialStatus.trialStarted ? (
-            <div className="flex items-center gap-2 text-green-300">
+            <div className="flex items-center gap-2 text-green-600">
               <span>✨</span>
               <span>Free trial active: <strong>{trialStatus.daysLeft} days left</strong></span>
             </div>
           ) : (
-            <div className="flex items-center gap-2 text-orange-300">
+            <div className="flex items-center gap-2 text-orange-600">
               <span>🎁</span>
               <span>Connect your first account to start your <strong>30-day free trial</strong></span>
             </div>
@@ -442,10 +442,10 @@ export default function ConnectPage() {
       )}
 
       {/* Stats */}
-      <div className="card mb-6 bg-gradient-to-r from-orange-500/10 to-pink-500/10 border-orange-500/20">
+      <div className="card mb-6 bg-gradient-to-r from-orange-500/10 to-pink-500/10 border-orange-200">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-400 mb-1">Connected Channels</p>
+            <p className="text-sm text-slate-500 mb-1">Connected Channels</p>
             <p className="text-2xl font-bold">{getConnectedCount()} / 2</p>
           </div>
           <div className="text-4xl">
@@ -456,7 +456,7 @@ export default function ConnectPage() {
 
       {/* Channel Cards */}
       <div className="mb-6">
-        <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Your Channels</h2>
+        <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Your Channels</h2>
         <ChannelCard channelKey="meta" />
         <ChannelCard channelKey="tiktok" />
       </div>
@@ -488,12 +488,12 @@ export default function ConnectPage() {
       </div>
 
       {/* Help */}
-      <div className="card bg-orange-500/5 border-orange-500/20">
+      <div className="card bg-orange-500/5 border-orange-200">
         <div className="flex items-start gap-3">
           <span className="text-2xl">💬</span>
           <div>
             <h3 className="font-semibold mb-1">Need help connecting?</h3>
-            <p className="text-gray-400 text-sm">
+            <p className="text-slate-500 text-sm">
               Simply click Connect and authorize Apex to respond to your messages. It takes less than 60 seconds!
             </p>
             <a href="mailto:support@getapexautomation.com" className="text-orange-500 hover:text-orange-400 text-sm font-medium mt-2 inline-block">

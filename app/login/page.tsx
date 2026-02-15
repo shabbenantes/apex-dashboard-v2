@@ -75,23 +75,26 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8 animate-fade-in">
-          <h1 className="font-display text-3xl font-bold">
-            Apex<span className="text-apex-orange">Automation</span>
+          <div className="w-14 h-14 bg-orange-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
+            ⚡
+          </div>
+          <h1 className="text-2xl font-bold text-slate-900">
+            Apex <span className="text-orange-500">Automation</span>
           </h1>
-          <p className="text-gray-400 mt-2">Manage your AI messaging assistant</p>
+          <p className="text-slate-500 mt-2">Manage your AI messaging assistant</p>
         </div>
 
         {!sent ? (
-          <div className="card animate-fade-in delay-1">
-            <h2 className="text-xl font-semibold mb-6">Sign in to your account</h2>
+          <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm animate-fade-in delay-1">
+            <h2 className="text-xl font-semibold text-slate-900 mb-6">Sign in to your account</h2>
             
             <form onSubmit={handleSubmit}>
               <div className="mb-4">
-                <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+                <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
                   Email address
                 </label>
                 <input
@@ -99,14 +102,14 @@ export default function LoginPage() {
                   id="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="input"
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all"
                   placeholder="you@yourbusiness.com"
                   required
                 />
               </div>
 
               {error && (
-                <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
                   {error}
                 </div>
               )}
@@ -114,7 +117,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading || !email}
-                className="btn-primary w-full"
+                className="w-full py-3 px-6 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
@@ -130,26 +133,26 @@ export default function LoginPage() {
               </button>
             </form>
 
-            <p className="text-center text-gray-500 text-sm mt-6">
+            <p className="text-center text-slate-500 text-sm mt-6">
               We'll send you a 6-digit code to sign in — no password needed.
             </p>
           </div>
         ) : (
-          <div className="card animate-fade-in">
+          <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm animate-fade-in">
             <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-apex-orange/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-apex-orange" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-16 h-16 bg-orange-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               </div>
-              <h2 className="text-xl font-semibold mb-2">Check your email</h2>
-              <p className="text-gray-400">
-                We sent a 6-digit code to <span className="text-white font-medium">{email}</span>
+              <h2 className="text-xl font-semibold text-slate-900 mb-2">Check your email</h2>
+              <p className="text-slate-500">
+                We sent a 6-digit code to <span className="text-slate-900 font-medium">{email}</span>
               </p>
             </div>
 
             <form onSubmit={handleCodeSubmit} className="mb-6">
-              <label htmlFor="code" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="code" className="block text-sm font-medium text-slate-700 mb-2">
                 Enter your login code
               </label>
               <input
@@ -157,7 +160,7 @@ export default function LoginPage() {
                 id="code"
                 value={code}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                className="input text-center text-2xl tracking-[0.5em] font-mono"
+                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 text-center text-2xl tracking-[0.5em] font-mono focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all"
                 placeholder="000000"
                 maxLength={6}
                 autoComplete="one-time-code"
@@ -165,7 +168,7 @@ export default function LoginPage() {
               />
               
               {error && (
-                <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+                <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
                   {error}
                 </div>
               )}
@@ -173,7 +176,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading || code.length !== 6}
-                className="btn-primary w-full mt-4"
+                className="w-full py-3 px-6 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed mt-4"
               >
                 {loading ? 'Verifying...' : 'Sign In'}
               </button>
@@ -181,15 +184,15 @@ export default function LoginPage() {
 
             <button
               onClick={() => { setSent(false); setError(''); setCode(''); }}
-              className="text-apex-orange hover:text-apex-orange-hover text-sm w-full text-center"
+              className="text-orange-500 hover:text-orange-600 text-sm w-full text-center font-medium"
             >
               Use a different email
             </button>
           </div>
         )}
 
-        <p className="text-center text-gray-600 text-sm mt-8">
-          Need help? <a href="mailto:support@getapexautomation.com" className="text-apex-orange hover:underline">Contact support</a>
+        <p className="text-center text-slate-400 text-sm mt-8">
+          Need help? <a href="mailto:support@getapexautomation.com" className="text-orange-500 hover:underline">Contact support</a>
         </p>
       </div>
     </div>

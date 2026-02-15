@@ -26,17 +26,15 @@ export default function MobileNav({ businessName }: { businessName: string }) {
   return (
     <>
       {/* Mobile header bar */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-apex-card border-b border-apex-border flex items-center justify-between px-4 z-50">
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 z-50">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-apex-purple to-apex-purple-light rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">A</span>
-          </div>
-          <span className="font-display font-semibold">Apex</span>
+          <span className="text-2xl">⚡</span>
+          <span className="font-bold text-slate-900">Apex<span className="text-orange-500">Automation</span></span>
         </Link>
 
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="p-2 hover:bg-white/5 rounded-lg"
+          className="p-2 hover:bg-slate-100 rounded-lg text-slate-600"
         >
           {isOpen ? (
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -50,25 +48,25 @@ export default function MobileNav({ businessName }: { businessName: string }) {
         </button>
       </div>
 
-      {/* Mobile menu overlay - covers entire screen below header */}
+      {/* Mobile menu overlay */}
       {isOpen && (
         <div 
-          className="lg:hidden fixed top-16 left-0 right-0 bottom-0 bg-[#0F0F1A] z-40"
+          className="lg:hidden fixed top-16 left-0 right-0 bottom-0 bg-black/20 z-40"
           onClick={() => setIsOpen(false)}
         />
       )}
 
       {/* Mobile menu panel */}
       {isOpen && (
-      <div className="lg:hidden fixed top-16 left-0 right-0 bg-[#0F0F1A] border-b border-apex-border z-50 shadow-2xl">
+      <div className="lg:hidden fixed top-16 left-0 right-0 bg-white border-b border-slate-200 z-50 shadow-lg">
         {/* Business name */}
-        <div className="px-4 py-3 border-b border-apex-border bg-[#0F0F1A]">
-          <div className="text-xs text-gray-500 uppercase tracking-wider">Business</div>
-          <div className="font-medium text-sm truncate">{businessName}</div>
+        <div className="px-4 py-3 border-b border-slate-200 bg-slate-50">
+          <div className="text-xs text-slate-400 uppercase tracking-wider">Business</div>
+          <div className="font-medium text-sm truncate text-slate-900">{businessName}</div>
         </div>
 
         {/* Nav items */}
-        <nav className="p-2 bg-[#0F0F1A]">
+        <nav className="p-2">
           {navItems.map((item) => {
             const isActive = pathname === item.href
             return (
@@ -78,25 +76,25 @@ export default function MobileNav({ businessName }: { businessName: string }) {
                 onClick={() => setIsOpen(false)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
                   isActive 
-                    ? 'bg-apex-purple/20 text-white' 
-                    : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                    ? 'bg-orange-50 text-orange-600' 
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                 }`}
               >
                 <item.icon className="w-5 h-5" />
-                <span>{item.label}</span>
+                <span className="font-medium">{item.label}</span>
               </Link>
             )
           })}
         </nav>
 
         {/* Sign out */}
-        <div className="p-2 border-t border-apex-border bg-[#0F0F1A]">
+        <div className="p-2 border-t border-slate-200">
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:text-red-400 hover:bg-white/5 w-full"
+            className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:text-red-500 hover:bg-red-50 w-full transition-all"
           >
             <LogoutIcon className="w-5 h-5" />
-            <span>Sign out</span>
+            <span className="font-medium">Sign out</span>
           </button>
         </div>
       </div>

@@ -21,21 +21,21 @@ export default function Sidebar({ businessName }: { businessName: string }) {
   }
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-64 bg-[#0f172a] border-r border-white/[0.08] flex flex-col">
+    <aside className="fixed left-0 top-0 h-screen w-64 bg-white border-r border-slate-200 flex flex-col">
       {/* Logo */}
-      <div className="p-6 border-b border-white/[0.08]">
+      <div className="p-6 border-b border-slate-200">
         <Link href="/dashboard" className="flex items-center gap-2">
           <span className="text-2xl">⚡</span>
-          <div className="font-bold text-xl">
+          <div className="font-bold text-xl text-slate-900">
             Apex<span className="text-orange-500">Automation</span>
           </div>
         </Link>
       </div>
 
       {/* Business Name */}
-      <div className="px-6 py-4 border-b border-white/[0.08]">
-        <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Business</div>
-        <div className="font-medium text-sm truncate text-white">{businessName}</div>
+      <div className="px-6 py-4 border-b border-slate-200">
+        <div className="text-xs text-slate-400 uppercase tracking-wider mb-1">Business</div>
+        <div className="font-medium text-sm truncate text-slate-900">{businessName}</div>
       </div>
 
       {/* Navigation */}
@@ -46,23 +46,27 @@ export default function Sidebar({ businessName }: { businessName: string }) {
             <Link
               key={item.href}
               href={item.href}
-              className={`nav-link ${isActive ? 'active' : ''}`}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                isActive 
+                  ? 'bg-orange-50 text-orange-600' 
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+              }`}
             >
               <item.icon className="w-5 h-5" />
-              <span>{item.label}</span>
+              <span className="font-medium">{item.label}</span>
             </Link>
           )
         })}
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-white/[0.08]">
+      <div className="p-4 border-t border-slate-200">
         <button
           onClick={handleLogout}
-          className="nav-link text-gray-500 hover:text-red-400 w-full"
+          className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:text-red-500 hover:bg-red-50 w-full transition-all duration-200"
         >
           <LogoutIcon className="w-5 h-5" />
-          <span>Sign out</span>
+          <span className="font-medium">Sign out</span>
         </button>
       </div>
     </aside>

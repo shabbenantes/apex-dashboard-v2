@@ -157,14 +157,14 @@ export default function DashboardPage() {
     return (
       <div className="max-w-6xl">
         <div className="mb-8 animate-fade-in">
-          <h1 className="text-3xl font-bold mb-2">Welcome back! 👋</h1>
-          <p className="text-gray-400">Loading your dashboard...</p>
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">Welcome back! 👋</h1>
+          <p className="text-slate-500">Loading your dashboard...</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {[1, 2, 3].map(i => (
-            <div key={i} className="card animate-pulse">
-              <div className="h-4 bg-white/10 rounded w-1/2 mb-4"></div>
-              <div className="h-8 bg-white/10 rounded w-1/3"></div>
+            <div key={i} className="bg-white rounded-2xl border border-slate-200 p-6 animate-pulse">
+              <div className="h-4 bg-slate-100 rounded w-1/2 mb-4"></div>
+              <div className="h-8 bg-slate-100 rounded w-1/3"></div>
             </div>
           ))}
         </div>
@@ -179,30 +179,30 @@ export default function DashboardPage() {
 
       {/* Header */}
       <div className="mb-8 animate-fade-in">
-        <h1 className="text-3xl font-bold mb-2">
+        <h1 className="text-3xl font-bold text-slate-900 mb-2">
           {session?.businessName ? `Welcome back, ${session.businessName}! 👋` : 'Welcome back! 👋'}
         </h1>
-        <p className="text-gray-400">
+        <p className="text-slate-500">
           Here's how your AI assistant is performing.
         </p>
       </div>
 
       {error && (
-        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400">
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600">
           {error}
         </div>
       )}
 
       {/* AI Status Card */}
-      <div className={`card mb-6 animate-fade-in ${aiStatus.active ? 'border-green-500/30' : 'border-orange-500/30'}`}>
+      <div className={`bg-white rounded-2xl border p-5 mb-6 animate-fade-in ${aiStatus.active ? 'border-green-200' : 'border-orange-200'}`}>
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="flex items-center gap-3 flex-1">
-            <div className={`w-3 h-3 rounded-full flex-shrink-0 ${aiStatus.active ? 'bg-green-400 animate-pulse' : 'bg-orange-400'}`} />
+            <div className={`w-3 h-3 rounded-full flex-shrink-0 ${aiStatus.active ? 'bg-green-500 animate-pulse' : 'bg-orange-500'}`} />
             <div>
-              <span className="font-semibold text-lg">
+              <span className="font-semibold text-lg text-slate-900">
                 {aiStatus.active ? 'AI is Active' : 'AI is Paused'}
               </span>
-              <p className="text-sm text-gray-400 mt-0.5">
+              <p className="text-sm text-slate-500 mt-0.5">
                 {aiStatus.active 
                   ? 'Responding to messages automatically' 
                   : 'Messages won\'t get automatic replies'}
@@ -215,8 +215,8 @@ export default function DashboardPage() {
             disabled={aiStatus.loading}
             className={`w-full sm:w-auto px-6 py-3 rounded-xl font-semibold transition-all ${
               aiStatus.active
-                ? 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 border border-orange-500/30'
-                : 'bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30'
+                ? 'bg-orange-50 text-orange-600 hover:bg-orange-100 border border-orange-200'
+                : 'bg-green-50 text-green-600 hover:bg-green-100 border border-green-200'
             } disabled:opacity-50`}
           >
             {aiStatus.loading ? (
@@ -257,30 +257,30 @@ export default function DashboardPage() {
       </div>
 
       {/* Recent Conversations */}
-      <div className="card animate-fade-in mb-6">
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 animate-fade-in mb-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold">Recent Conversations</h2>
-          <a href="/conversations" className="text-orange-500 hover:text-orange-400 text-sm font-medium">
+          <h2 className="text-xl font-semibold text-slate-900">Recent Conversations</h2>
+          <a href="/conversations" className="text-orange-500 hover:text-orange-600 text-sm font-medium">
             View all →
           </a>
         </div>
         
         {conversations.length === 0 ? (
           <div className="text-center py-8">
-            <div className="w-16 h-16 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-orange-50 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold mb-2">No conversations yet</h3>
-            <p className="text-gray-400 text-sm mb-4">
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">No conversations yet</h3>
+            <p className="text-slate-500 text-sm mb-4">
               When customers message your Facebook or Instagram page, their conversations will appear here.
             </p>
             <div className="flex justify-center gap-4">
-              <a href="/settings" className="text-orange-500 hover:text-orange-400 font-medium text-sm">
+              <a href="/settings" className="text-orange-500 hover:text-orange-600 font-medium text-sm">
                 Configure your AI →
               </a>
-              <a href="/connect" className="text-gray-400 hover:text-white font-medium text-sm">
+              <a href="/connect" className="text-slate-500 hover:text-slate-900 font-medium text-sm">
                 Check connections →
               </a>
             </div>
@@ -291,33 +291,33 @@ export default function DashboardPage() {
               <a
                 key={convo.id}
                 href={`/conversations/${convo.id}`}
-                className="flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors group"
+                className="flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 transition-colors group"
               >
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
                   convo.needsAttention 
-                    ? 'bg-orange-500/20' 
-                    : 'bg-white/10'
+                    ? 'bg-orange-100' 
+                    : 'bg-slate-100'
                 }`}>
-                  <span className={`text-sm font-medium ${convo.needsAttention ? 'text-orange-400' : 'text-gray-300'}`}>
+                  <span className={`text-sm font-medium ${convo.needsAttention ? 'text-orange-600' : 'text-slate-600'}`}>
                     {(convo.name || 'UN').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span className="font-medium text-sm">{convo.name || 'Unknown'}</span>
+                    <span className="font-medium text-sm text-slate-900">{convo.name || 'Unknown'}</span>
                     {convo.needsAttention && (
-                      <span className="text-[10px] font-medium text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded">
+                      <span className="text-[10px] font-medium text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded">
                         Needs Attention
                       </span>
                     )}
                     {convo.isToday && !convo.needsAttention && (
-                      <span className="text-[10px] font-medium text-green-400 bg-green-500/10 px-1.5 py-0.5 rounded">
+                      <span className="text-[10px] font-medium text-green-600 bg-green-50 px-1.5 py-0.5 rounded">
                         Today
                       </span>
                     )}
-                    <span className="text-xs text-gray-500 ml-auto">{convo.time}</span>
+                    <span className="text-xs text-slate-400 ml-auto">{convo.time}</span>
                   </div>
-                  <p className="text-xs text-gray-500 truncate">
+                  <p className="text-xs text-slate-500 truncate">
                     {convo.direction === 'outbound' ? '↗️ ' : '↙️ '}
                     {convo.lastMessage?.substring(0, 60) || 'No message'}
                   </p>
