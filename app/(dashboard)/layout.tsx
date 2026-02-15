@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { ApexSession, SessionData } from '@/lib/session'
 import Sidebar from '@/components/Sidebar'
 import MobileNav from '@/components/MobileNav'
+import TrialBanner from '@/components/TrialBanner'
 
 export default function DashboardLayout({
   children,
@@ -56,6 +57,7 @@ export default function DashboardLayout({
       
       {/* Main content - full width on mobile, offset on desktop */}
       <main className="lg:ml-64 p-4 lg:p-8 pt-20 lg:pt-8">
+        <TrialBanner />
         {children}
       </main>
     </div>
