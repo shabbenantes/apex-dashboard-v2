@@ -409,10 +409,34 @@ const industryConfigs: Record<string, {
 }
 
 const toneOptions = [
-  { value: 'friendly', label: 'Friendly', emoji: '😊', desc: 'Warm & approachable' },
-  { value: 'professional', label: 'Professional', emoji: '👔', desc: 'Polished & courteous' },
-  { value: 'luxury', label: 'Luxury', emoji: '✨', desc: 'Refined & elegant' },
-  { value: 'energetic', label: 'Energetic', emoji: '🔥', desc: 'Upbeat & fun' },
+  { 
+    value: 'friendly', 
+    label: 'Friendly', 
+    emoji: '😊', 
+    desc: 'Warm & approachable',
+    example: "Hey there! 👋 Thanks so much for reaching out! I'd love to help you. Yes, we have availability tomorrow afternoon - would 2pm or 4pm work better for you?"
+  },
+  { 
+    value: 'professional', 
+    label: 'Professional', 
+    emoji: '👔', 
+    desc: 'Polished & courteous',
+    example: "Thank you for contacting us. I would be happy to assist you. We do have availability tomorrow afternoon. Would 2:00 PM or 4:00 PM work best for your schedule?"
+  },
+  { 
+    value: 'luxury', 
+    label: 'Luxury', 
+    emoji: '✨', 
+    desc: 'Refined & elegant',
+    example: "Good afternoon, and thank you for your inquiry. We would be delighted to accommodate you. I have two exclusive appointment times available tomorrow: 2 PM and 4 PM. Which would you prefer?"
+  },
+  { 
+    value: 'energetic', 
+    label: 'Energetic', 
+    emoji: '🔥', 
+    desc: 'Upbeat & fun',
+    example: "Hey!! So excited you messaged us! 🎉 YES we totally have spots tomorrow! I've got 2pm and 4pm open - which one works for you?! Can't wait to see you!"
+  },
 ]
 
 const businessTypes = Object.entries(industryConfigs).map(([value, config]) => ({
@@ -547,10 +571,12 @@ export default function AIConfigPage() {
 
       {/* AI Personality */}
       <section className="bg-white rounded-2xl border border-slate-200 p-5 mb-4">
-        <h2 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+        <h2 className="font-semibold text-slate-900 mb-1 flex items-center gap-2">
           <span>🎭</span> AI Personality
         </h2>
-        <div className="grid grid-cols-2 gap-2">
+        <p className="text-sm text-slate-500 mb-4">How should your AI talk to customers?</p>
+        
+        <div className="grid grid-cols-2 gap-2 mb-4">
           {toneOptions.map(opt => (
             <button
               key={opt.value}
@@ -568,6 +594,17 @@ export default function AIConfigPage() {
               <p className="text-xs text-slate-500">{opt.desc}</p>
             </button>
           ))}
+        </div>
+
+        {/* Example Response Preview */}
+        <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">Example Response</span>
+            <span className="text-xs text-slate-400">• "Do you have availability tomorrow?"</span>
+          </div>
+          <div className="bg-[#0084ff] text-white text-sm p-3 rounded-2xl rounded-br-md max-w-[90%] ml-auto">
+            {toneOptions.find(t => t.value === settings.tone)?.example}
+          </div>
         </div>
       </section>
 
@@ -669,13 +706,25 @@ export default function AIConfigPage() {
         <h2 className="font-semibold text-slate-900 mb-1 flex items-center gap-2">
           <span>📝</span> Special Instructions
         </h2>
-        <p className="text-sm text-slate-500 mb-3">Rules your AI should always follow</p>
+        <p className="text-sm text-slate-500 mb-3">Custom rules your AI will always follow</p>
         <textarea
           value={settings.specialInstructions || ''}
           onChange={(e) => handleChange('specialInstructions', e.target.value)}
           placeholder="Always mention our new client special. Never discuss competitor pricing. If asked about X, say Y..."
           className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 min-h-[100px] resize-none"
         />
+        
+        {/* Examples */}
+        <div className="mt-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+          <p className="text-xs font-medium text-slate-500 mb-2">💡 Example instructions:</p>
+          <ul className="text-xs text-slate-500 space-y-1">
+            <li>• "Always mention our 20% new client discount"</li>
+            <li>• "Never quote exact prices - say 'starting at' or ask them to call"</li>
+            <li>• "If they ask about [competitor], say we focus on our own quality"</li>
+            <li>• "Always ask for their name before booking"</li>
+            <li>• "We're booked 2 weeks out for popular services"</li>
+          </ul>
+        </div>
       </section>
 
       {/* Save Button */}
