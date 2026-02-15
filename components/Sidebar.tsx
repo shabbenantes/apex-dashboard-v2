@@ -9,6 +9,7 @@ const navItems = [
   { href: '/conversations', label: 'Conversations', icon: ChatIcon },
   { href: '/settings', label: 'Settings', icon: SettingsIcon },
   { href: '/connect', label: 'Connections', icon: LinkIcon },
+  { href: '/referrals', label: 'Referrals', icon: GiftIcon },
 ]
 
 export default function Sidebar({ businessName }: { businessName: string }) {
@@ -111,6 +112,14 @@ function LogoutIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+    </svg>
+  )
+}
+
+function GiftIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
     </svg>
   )
 }

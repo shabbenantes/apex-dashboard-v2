@@ -5,7 +5,7 @@ const API_URL = process.env.DASHBOARD_API_URL || 'https://apex-dashboard-api-5r3
 
 export async function POST(request: Request) {
   try {
-    const { email, code } = await request.json()
+    const { email, code, referralCode } = await request.json()
 
     if (!email || !code) {
       return NextResponse.json({ error: 'Email and code are required' }, { status: 400 })
@@ -32,6 +32,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ 
         error: data.error || 'Invalid or expired code' 
       }, { status: 401 })
+    }
+
+    // Apply referral code if provided (best effort - don't fail login if this fails)
+    if (referralCode) {
+      try {
+        await fetch(`${API_URL}/referrals/use`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            code: referralCode,
+            newCustomerEmail: data.email,
+            newCustomerName: data.businessName
+          }),
+        })
+        console.log(`Applied referral code ${referralCode} for ${data.email}`)
+      } catch (refErr) {
+        // Don't fail login if referral application fails
+        console.error('Failed to apply referral code:', refErr)
+      }
     }
 
     // Return session data

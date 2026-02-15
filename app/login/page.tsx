@@ -1,16 +1,57 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { ApexSession } from '@/lib/session'
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
+  const [referralCode, setReferralCode] = useState<string | null>(null)
+  const [referralDiscount, setReferralDiscount] = useState<number>(0)
+
+  // Capture referral code from URL
+  useEffect(() => {
+    const ref = searchParams.get('ref')
+    if (ref) {
+      setReferralCode(ref)
+      // Store in localStorage in case they navigate away
+      localStorage.setItem('apex_referral_code', ref)
+      // Validate the referral code
+      validateReferralCode(ref)
+    } else {
+      // Check localStorage for previously captured code
+      const storedRef = localStorage.getItem('apex_referral_code')
+      if (storedRef) {
+        setReferralCode(storedRef)
+        validateReferralCode(storedRef)
+      }
+    }
+  }, [searchParams])
+
+  const validateReferralCode = async (code: string) => {
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://apex-dashboard-api-5r3u.onrender.com'
+      const res = await fetch(`${API_URL}/referrals/validate/${code}`)
+      if (res.ok) {
+        const data = await res.json()
+        if (data.valid) {
+          setReferralDiscount(data.discount || 25)
+        } else {
+          // Invalid code, clear it
+          setReferralCode(null)
+          localStorage.removeItem('apex_referral_code')
+        }
+      }
+    } catch {
+      // Ignore validation errors
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -48,12 +89,19 @@ export default function LoginPage() {
       const res = await fetch('/api/auth/verify-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, code }),
+        body: JSON.stringify({ 
+          email, 
+          code,
+          referralCode: referralCode || undefined
+        }),
       })
 
       const data = await res.json()
 
       if (res.ok && data.sessionId) {
+        // Clear referral code from localStorage on successful login
+        localStorage.removeItem('apex_referral_code')
+        
         // Save session
         ApexSession.save({
           token: data.sessionId,
@@ -132,6 +180,13 @@ export default function LoginPage() {
                 )}
               </button>
             </form>
+
+            {referralCode && referralDiscount > 0 && (
+              <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm flex items-center gap-2">
+                <span className="text-lg">🎁</span>
+                <span>You'll get <strong>${referralDiscount} off</strong> your first month!</span>
+              </div>
+            )}
 
             <p className="text-center text-slate-500 text-sm mt-6">
               We'll send you a 6-digit code to sign in — no password needed.
