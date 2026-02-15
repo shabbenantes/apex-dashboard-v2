@@ -40,7 +40,7 @@ const supportItems = [
     external: true,
   },
   {
-    href: 'https://getapexautomation.com/faq',
+    href: 'https://getapexautomation.com/#faq',
     icon: '❓',
     title: 'FAQ',
     description: 'Common questions answered',
