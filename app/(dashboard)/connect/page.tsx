@@ -1,9 +1,7 @@
 'use client'
 
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { ApexSession } from '@/lib/session'
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://apex-dashboard-api-5r3u.onrender.com'
 
 interface TrialStatus {
   trialStarted: boolean
@@ -19,15 +17,7 @@ interface ChannelConfig {
   icon: React.ReactNode
   bgClass: string
   description: string
-  connectedText: string
-  available: boolean
-  comingSoon?: boolean
-  testInstructions: {
-    platform: string
-    steps: string[]
-    testMessage: string
-    emoji: string
-  }
+  activeText: string
 }
 
 const CHANNELS: Record<string, ChannelConfig> = {
@@ -44,21 +34,8 @@ const CHANNELS: Record<string, ChannelConfig> = {
       </div>
     ),
     bgClass: 'bg-gradient-to-br from-blue-500/20 to-pink-500/20',
-    description: 'Respond to Facebook Messenger and Instagram DMs automatically',
-    connectedText: 'Facebook & Instagram connected',
-    available: true,
-    testInstructions: {
-      platform: 'Facebook',
-      emoji: '📘',
-      testMessage: 'TEST',
-      steps: [
-        'Open Facebook on your phone or computer',
-        'Find your business page',
-        'Click "Message" to send a message TO your own page',
-        'Type TEST and send it',
-        'Come back here — we\'ll detect it automatically!'
-      ]
-    }
+    description: 'Connect in your account portal, then send yourself a test message',
+    activeText: 'AI is responding to messages',
   },
   tiktok: {
     name: 'TikTok',
@@ -68,21 +45,8 @@ const CHANNELS: Record<string, ChannelConfig> = {
       </svg>
     ),
     bgClass: 'bg-black',
-    description: 'Respond to TikTok messages automatically',
-    connectedText: 'TikTok connected',
-    available: true,
-    testInstructions: {
-      platform: 'TikTok',
-      emoji: '🎵',
-      testMessage: 'TEST',
-      steps: [
-        'Open TikTok on your phone',
-        'Go to your business profile',
-        'Message your own account',
-        'Send the word TEST',
-        'Come back here — we\'ll detect it!'
-      ]
-    }
+    description: 'Connect in your account portal, then send yourself a test message',
+    activeText: 'AI is responding to messages',
   },
 }
 
@@ -92,7 +56,6 @@ interface IntegrationStatus {
   facebook: { connected: boolean; pageName?: string; verified?: boolean }
   instagram: { connected: boolean; handle?: string; verified?: boolean }
   tiktok: { connected: boolean; handle?: string; verified?: boolean }
-  ghlConnectUrl?: string
 }
 
 interface OnboardingStatus {
@@ -113,15 +76,6 @@ export default function ConnectPage() {
   const [trialStatus, setTrialStatus] = useState<TrialStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [checking, setChecking] = useState(false)
-  const [showConnectModal, setShowConnectModal] = useState(false)
-  const [showTestModal, setShowTestModal] = useState(false)
-  const [testChannel, setTestChannel] = useState<ChannelKey | null>(null)
-  const [testStatus, setTestStatus] = useState<'waiting' | 'polling' | 'success'>('waiting')
-  const [copied, setCopied] = useState(false)
-  const [trialError, setTrialError] = useState<string | null>(null)
-  const previousStatus = useRef<IntegrationStatus | null>(null)
-  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
-  const pollCountRef = useRef(0)
 
   async function fetchTrialStatus() {
     const session = ApexSession.get()
@@ -137,45 +91,6 @@ export default function ConnectPage() {
       }
     } catch (err) {
       console.error('Failed to fetch trial status:', err)
-    }
-  }
-
-  async function registerTrialAccount(platform: string, accountId: string, accountName: string) {
-    const session = ApexSession.get()
-    if (!session?.email) return
-
-    try {
-      const checkRes = await fetch(`/api/trial/check?platform=${platform}&accountId=${accountId}`)
-      const checkData = await checkRes.json()
-
-      if (!checkData.available) {
-        setTrialError(checkData.message || 'This account has already been used for a free trial.')
-        return false
-      }
-
-      const regRes = await fetch('/api/trial/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          platform,
-          accountId,
-          accountName,
-          email: session.email,
-          locationId: session.locationId,
-        }),
-      })
-
-      if (!regRes.ok) {
-        const errData = await regRes.json()
-        setTrialError(errData.error || 'Failed to start trial')
-        return false
-      }
-
-      await fetchTrialStatus()
-      return true
-    } catch (err) {
-      console.error('Failed to register trial:', err)
-      return false
     }
   }
 
@@ -195,23 +110,7 @@ export default function ConnectPage() {
       
       if (intRes.ok) {
         const newStatus = await intRes.json()
-        
-        const prev = previousStatus.current
-        if (prev && !trialStatus?.trialStarted) {
-          if (!prev.facebook?.connected && newStatus.facebook?.connected && newStatus.facebook?.pageId) {
-            await registerTrialAccount('facebook', newStatus.facebook.pageId, newStatus.facebook.pageName || '')
-          }
-          if (!prev.instagram?.connected && newStatus.instagram?.connected && newStatus.instagram?.accountId) {
-            await registerTrialAccount('instagram', newStatus.instagram.accountId, newStatus.instagram.handle || '')
-          }
-          if (!prev.tiktok?.connected && newStatus.tiktok?.connected && newStatus.tiktok?.accountId) {
-            await registerTrialAccount('tiktok', newStatus.tiktok.accountId, newStatus.tiktok.handle || '')
-          }
-        }
-        
-        previousStatus.current = newStatus
         setStatus(newStatus)
-        return newStatus
       }
       if (onboardRes.ok) {
         const data = await onboardRes.json()
@@ -223,84 +122,20 @@ export default function ConnectPage() {
       setLoading(false)
       setChecking(false)
     }
-    return null
-  }, [trialStatus?.trialStarted])
-
-  // Lightweight poll just for verification status
-  const pollVerification = useCallback(async () => {
-    const token = ApexSession.getToken()
-    if (!token) return null
-    
-    try {
-      const res = await fetch('/api/connections/poll', {
-        headers: { 'Authorization': `Bearer ${token}` },
-        cache: 'no-store',
-      })
-      if (res.ok) {
-        return await res.json()
-      }
-    } catch (err) {
-      console.error('Poll error:', err)
-    }
-    return null
-  }, [])
-
-  // Polling for test detection - uses lightweight endpoint
-  const startPolling = useCallback(() => {
-    setTestStatus('polling')
-    pollCountRef.current = 0
-    
-    pollIntervalRef.current = setInterval(async () => {
-      pollCountRef.current++
-      
-      // Use lightweight poll first
-      const pollResult = await pollVerification()
-      
-      if (pollResult) {
-        const isVerified = testChannel === 'meta' 
-          ? (pollResult.facebook?.verified || pollResult.instagram?.verified)
-          : pollResult.tiktok?.verified
-        
-        if (isVerified) {
-          // Fetch full status to update UI
-          await fetchStatus()
-          setTestStatus('success')
-          stopPolling()
-          return
-        }
-      }
-      
-      // Stop after 2 minutes (24 polls at 5 sec each)
-      if (pollCountRef.current >= 24) {
-        stopPolling()
-      }
-    }, 3000) // Poll every 3 seconds for faster feedback
-  }, [pollVerification, fetchStatus, testChannel])
-
-  const stopPolling = useCallback(() => {
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current)
-      pollIntervalRef.current = null
-    }
   }, [])
 
   useEffect(() => {
     fetchStatus()
     fetchTrialStatus()
-    return () => stopPolling()
-  }, [])
+  }, [fetchStatus])
 
-  const isMetaConnected = status.facebook?.connected || status.instagram?.connected
+  const isMetaActive = status.facebook?.connected || status.instagram?.connected
+  const isTikTokActive = status.tiktok?.connected
 
-  const getChannelStatus = (key: ChannelKey): boolean => {
-    if (key === 'meta') return isMetaConnected
-    return status[key]?.connected || false
-  }
-
-  const getConnectedCount = () => {
+  const getActiveCount = () => {
     let count = 0
-    if (isMetaConnected) count++
-    if (status.tiktok?.connected) count++
+    if (isMetaActive) count++
+    if (isTikTokActive) count++
     return count
   }
 
@@ -310,91 +145,36 @@ export default function ConnectPage() {
     }
   }
 
-  const openTestModal = (channel: ChannelKey) => {
-    setTestChannel(channel)
-    setTestStatus('waiting')
-    setCopied(false)
-    setShowTestModal(true)
-  }
-
-  const closeTestModal = () => {
-    setShowTestModal(false)
-    stopPolling()
-    setTestStatus('waiting')
-  }
-
-  const copyTestMessage = () => {
-    if (testChannel) {
-      navigator.clipboard.writeText(CHANNELS[testChannel].testInstructions.testMessage)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }
-  }
-
-  const getChannelVerified = (key: ChannelKey): boolean => {
-    if (key === 'meta') return status.facebook?.verified || status.instagram?.verified || false
-    return status[key]?.verified || false
-  }
-
   const ChannelCard = ({ channelKey }: { channelKey: ChannelKey }) => {
     const channel = CHANNELS[channelKey]
-    const isConnected = getChannelStatus(channelKey)
-    const isVerified = getChannelVerified(channelKey)
+    const isActive = channelKey === 'meta' ? isMetaActive : isTikTokActive
 
     return (
-      <div className={`card mb-4 ${channel.comingSoon ? 'opacity-60' : ''}`}>
+      <div className="card mb-4">
         <div className="flex items-start gap-4">
           <div className={`w-14 h-14 ${channel.bgClass} rounded-xl flex items-center justify-center flex-shrink-0`}>
             {channel.icon}
           </div>
           <div className="flex-1">
             <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-lg">{channel.name}</h3>
-                {channel.comingSoon && (
-                  <span className="px-2 py-0.5 bg-orange-500/20 text-orange-400 text-xs rounded-full font-medium">
-                    Coming Soon
-                  </span>
-                )}
-              </div>
-              {!channel.comingSoon && (
-                isVerified ? (
-                  <span className="flex items-center gap-1.5 text-green-400 text-sm font-medium">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Verified
-                  </span>
-                ) : isConnected ? (
-                  <span className="flex items-center gap-1.5 text-green-400 text-sm">
-                    <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                    Connected
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1.5 text-yellow-400 text-sm">
-                    <span className="w-2 h-2 bg-yellow-400 rounded-full"></span>
-                    Not connected
-                  </span>
-                )
+              <h3 className="font-semibold text-lg">{channel.name}</h3>
+              {isActive ? (
+                <span className="flex items-center gap-1.5 text-green-400 text-sm font-medium">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Active
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5 text-orange-400 text-sm">
+                  <span className="w-2 h-2 bg-orange-400 rounded-full"></span>
+                  Pending
+                </span>
               )}
             </div>
             <p className="text-gray-400 text-sm mb-3">
-              {isVerified 
-                ? '✓ AI assistant is responding to messages' 
-                : isConnected 
-                  ? channel.connectedText 
-                  : channel.description}
+              {isActive ? channel.activeText : channel.description}
             </p>
-            
-            {/* Test Connection button - show if not verified */}
-            {!channel.comingSoon && !isVerified && (
-              <button
-                onClick={() => openTestModal(channelKey)}
-                className="text-sm bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 px-4 py-2 rounded-lg transition-colors font-medium"
-              >
-                {isConnected ? 'Verify Connection' : 'Test Connection'}
-              </button>
-            )}
           </div>
         </div>
       </div>
@@ -423,174 +203,11 @@ export default function ConnectPage() {
 
   return (
     <div className="max-w-2xl">
-      {/* Connect Modal */}
-      {showConnectModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#0f172a] border border-white/[0.08] rounded-2xl p-6 max-w-md w-full animate-fade-in">
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-3xl">🔗</span>
-              </div>
-              <h2 className="text-2xl font-bold mb-2">Connect Your Accounts</h2>
-              <p className="text-gray-400">
-                You'll be taken to your account portal to connect Facebook, Instagram, and TikTok.
-              </p>
-            </div>
-
-            {onboarding.ghlCredentials && (
-              <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4 mb-6">
-                <p className="text-sm text-gray-300 mb-3">Your portal login:</p>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400 text-sm">Email:</span>
-                    <span className="text-white font-mono text-sm">{onboarding.ghlCredentials.email}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400 text-sm">Password:</span>
-                    <span className="text-white font-mono text-sm">{onboarding.ghlCredentials.password}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-3">
-              <button
-                onClick={() => {
-                  openGHLPortal()
-                  setShowConnectModal(false)
-                }}
-                className="btn-primary w-full py-3"
-              >
-                Open Account Portal →
-              </button>
-              <button
-                onClick={() => setShowConnectModal(false)}
-                className="w-full py-3 text-gray-400 hover:text-white transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-
-            <p className="text-center text-gray-500 text-xs mt-4">
-              After connecting, come back and click "Test Connection"
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Test Connection Modal */}
-      {showTestModal && testChannel && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#0f172a] border border-white/[0.08] rounded-2xl p-6 max-w-md w-full animate-fade-in">
-            
-            {testStatus === 'success' ? (
-              // Success State
-              <div className="text-center py-4">
-                <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
-                  <span className="text-5xl">🎉</span>
-                </div>
-                <h2 className="text-2xl font-bold mb-2 text-green-400">Connected!</h2>
-                <p className="text-gray-400 mb-6">
-                  Your {CHANNELS[testChannel].testInstructions.platform} is working perfectly. Your AI assistant is ready to respond to customers 24/7.
-                </p>
-                <button
-                  onClick={closeTestModal}
-                  className="btn-primary w-full py-3"
-                >
-                  Awesome! 🚀
-                </button>
-              </div>
-            ) : (
-              // Waiting / Polling State
-              <>
-                <div className="text-center mb-6">
-                  <div className="w-16 h-16 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-3xl">{CHANNELS[testChannel].testInstructions.emoji}</span>
-                  </div>
-                  <h2 className="text-2xl font-bold mb-2">
-                    Test {CHANNELS[testChannel].testInstructions.platform}
-                  </h2>
-                  <p className="text-gray-400">
-                    Send yourself a test message to confirm it's working
-                  </p>
-                </div>
-
-                {/* Steps */}
-                <div className="space-y-3 mb-6">
-                  {CHANNELS[testChannel].testInstructions.steps.map((step, i) => (
-                    <div key={i} className="flex items-start gap-3">
-                      <div className="w-6 h-6 bg-orange-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <span className="text-orange-400 text-xs font-bold">{i + 1}</span>
-                      </div>
-                      <p className="text-gray-300 text-sm">{step}</p>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Copy test message */}
-                <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6">
-                  <p className="text-gray-400 text-xs mb-2">Send this message:</p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-white text-2xl font-bold font-mono">
-                      {CHANNELS[testChannel].testInstructions.testMessage}
-                    </span>
-                    <button
-                      onClick={copyTestMessage}
-                      className="text-sm bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 px-3 py-1.5 rounded-lg transition-colors"
-                    >
-                      {copied ? '✓ Copied!' : 'Copy'}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Polling indicator */}
-                {testStatus === 'polling' && (
-                  <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 mb-6">
-                    <div className="flex items-center gap-3">
-                      <svg className="w-5 h-5 animate-spin text-blue-400" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      <span className="text-blue-300 text-sm">Waiting for your test message...</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Action buttons */}
-                <div className="space-y-3">
-                  {testStatus === 'waiting' ? (
-                    <button
-                      onClick={startPolling}
-                      className="btn-primary w-full py-3"
-                    >
-                      I've sent the message ✓
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => fetchStatus()}
-                      className="w-full py-3 bg-white/5 hover:bg-white/10 rounded-xl text-white transition-colors"
-                    >
-                      Check again
-                    </button>
-                  )}
-                  <button
-                    onClick={closeTestModal}
-                    className="w-full py-3 text-gray-400 hover:text-white transition-colors"
-                  >
-                    I'll do this later
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Header */}
       <div className="mb-8 animate-fade-in">
         <h1 className="text-3xl font-bold mb-2">Connections</h1>
         <p className="text-gray-400">
-          Connect your social accounts to enable AI responses.
+          Connect your social accounts so AI can respond to messages.
         </p>
       </div>
 
@@ -627,59 +244,69 @@ export default function ConnectPage() {
         </div>
       )}
 
-      {/* Trial Error */}
-      {trialError && (
-        <div className="mb-6 p-4 rounded-xl border bg-red-500/10 border-red-500/30">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-red-300">
-              <span>⚠️</span>
-              <span>{trialError}</span>
-            </div>
-            <button 
-              onClick={() => setTrialError(null)}
-              className="text-red-300 hover:text-white"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Stats */}
+      {/* Status Overview */}
       <div className="card mb-6 bg-gradient-to-r from-orange-500/10 to-pink-500/10 border-orange-500/20">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-400 mb-1">Connected Channels</p>
-            <p className="text-2xl font-bold">{getConnectedCount()} / 2</p>
+            <p className="text-sm text-gray-400 mb-1">Active Channels</p>
+            <p className="text-2xl font-bold">{getActiveCount()} / 2</p>
           </div>
           <div className="text-4xl">
-            {getConnectedCount() === 0 ? '📴' : getConnectedCount() === 1 ? '📱' : '🚀'}
+            {getActiveCount() === 0 ? '⏳' : getActiveCount() === 2 ? '🚀' : '📱'}
           </div>
         </div>
       </div>
 
-      {/* Connect All Button */}
-      {getConnectedCount() < 2 && (
-        <div className="card mb-6 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-green-500/20">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-              <span className="text-2xl">⚡</span>
+      {/* How to Connect */}
+      <div className="card mb-6 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border-blue-500/20">
+        <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+          <span>📋</span> How to Connect
+        </h3>
+        <ol className="space-y-3 text-sm">
+          <li className="flex items-start gap-3">
+            <span className="w-6 h-6 bg-orange-500/20 rounded-full flex items-center justify-center flex-shrink-0 text-orange-400 font-bold text-xs">1</span>
+            <div>
+              <p className="text-white font-medium">Open your account portal</p>
+              <p className="text-gray-400">Click the button below to access your portal</p>
             </div>
-            <div className="flex-1">
-              <h3 className="font-semibold mb-1">Connect Your Accounts</h3>
-              <p className="text-gray-400 text-sm">
-                Connect all your social accounts in one place
-              </p>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="w-6 h-6 bg-orange-500/20 rounded-full flex items-center justify-center flex-shrink-0 text-orange-400 font-bold text-xs">2</span>
+            <div>
+              <p className="text-white font-medium">Go to Settings → Integrations</p>
+              <p className="text-gray-400">Connect Facebook, Instagram, or TikTok</p>
             </div>
-            <button
-              onClick={() => setShowConnectModal(true)}
-              className="btn-primary py-2 px-4 text-sm"
-            >
-              Connect
-            </button>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="w-6 h-6 bg-orange-500/20 rounded-full flex items-center justify-center flex-shrink-0 text-orange-400 font-bold text-xs">3</span>
+            <div>
+              <p className="text-white font-medium">Send yourself a test message</p>
+              <p className="text-gray-400">Message your own page to verify it's working</p>
+            </div>
+          </li>
+        </ol>
+
+        {onboarding.ghlCredentials && (
+          <div className="mt-4 p-3 bg-white/5 rounded-lg border border-white/10">
+            <p className="text-xs text-gray-400 mb-2">Your portal login:</p>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-400">Email:</span>
+              <span className="text-white font-mono">{onboarding.ghlCredentials.email}</span>
+            </div>
+            <div className="flex justify-between text-sm mt-1">
+              <span className="text-gray-400">Password:</span>
+              <span className="text-white font-mono">{onboarding.ghlCredentials.password}</span>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+
+        <button
+          onClick={openGHLPortal}
+          className="btn-primary w-full mt-4"
+        >
+          Open Account Portal →
+        </button>
+      </div>
 
       {/* Channel Cards */}
       <div className="mb-6">
@@ -719,9 +346,9 @@ export default function ConnectPage() {
         <div className="flex items-start gap-3">
           <span className="text-2xl">💬</span>
           <div>
-            <h3 className="font-semibold mb-1">Need help connecting?</h3>
+            <h3 className="font-semibold mb-1">Need help?</h3>
             <p className="text-gray-400 text-sm">
-              We're here to help you get set up on all your channels.
+              We're here to help you get set up.
             </p>
             <a href="mailto:support@getapexautomation.com" className="text-orange-500 hover:text-orange-400 text-sm font-medium mt-2 inline-block">
               Contact Support →
