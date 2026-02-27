@@ -1,87 +1,36 @@
-# Apex Customer Dashboard
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-A PWA dashboard for Apex Automation customers to manage their AI messaging assistant.
+## Getting Started
 
-## Features
+First, run the development server:
 
-- 📊 **Dashboard** - View stats (messages, response time, leads)
-- 💬 **Conversations** - See AI-handled chats
-- ⚙️ **Settings** - Update business info, AI config, FAQ
-- 🔗 **Connections** - FB/IG connection status
-- 📱 **PWA** - Install as app on phone
-
-## Tech Stack
-
-- Next.js 15 (App Router)
-- Tailwind CSS
-- PWA-enabled
-
-## Setup
-
-1. Install dependencies:
-```bash
-npm install
-```
-
-2. Copy environment file:
-```bash
-cp .env.local.example .env.local
-```
-
-3. Update `.env.local` with your n8n webhook URLs
-
-4. Run development server:
 ```bash
 npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
 
-5. Open http://localhost:3000
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-## Deployment
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-### Vercel (Recommended)
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-```bash
-npm i -g vercel
-vercel
-```
+## Learn More
 
-### Manual
+To learn more about Next.js, take a look at the following resources:
 
-```bash
-npm run build
-npm start
-```
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-## n8n Workflows Required
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-1. **apex-dashboard-auth** - Sends magic link emails
-2. **apex-dashboard-verify** - Validates tokens, returns session data
-3. **apex-dashboard-settings** - Updates GHL custom values
+## Deploy on Vercel
 
-## Environment Variables
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-| Variable | Description |
-|----------|-------------|
-| `N8N_AUTH_WEBHOOK_URL` | Webhook for magic link requests |
-| `N8N_VERIFY_WEBHOOK_URL` | Webhook for token verification |
-| `N8N_SETTINGS_WEBHOOK_URL` | Webhook for settings updates |
-| `DASHBOARD_URL` | Public dashboard URL |
-
-## File Structure
-
-```
-dashboard/
-├── app/
-│   ├── (dashboard)/      # Authenticated pages
-│   │   ├── dashboard/    # Main dashboard
-│   │   ├── conversations/# Chat history
-│   │   ├── settings/     # Config page
-│   │   └── connect/      # FB/IG status
-│   ├── api/              # API routes
-│   ├── login/            # Login page
-│   └── auth/verify/      # Magic link landing
-├── components/           # Reusable components
-├── public/               # Static files + PWA manifest
-└── lib/                  # Utilities
-```
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

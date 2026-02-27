@@ -1,15 +1,9 @@
 services:
   - type: web
-    name: apex-dashboard
+    name: apex-dashboard-v2
     runtime: node
     buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
-      - key: DASHBOARD_API_URL
-        value: https://apex-dashboard-api.onrender.com
-      - key: N8N_AUTH_WEBHOOK_URL
-        value: https://getapexautomation.app.n8n.cloud/webhook/apex-dashboard-auth
-      - key: N8N_SETTINGS_WEBHOOK_URL
-        value: https://getapexautomation.app.n8n.cloud/webhook/apex-dashboard-settings
-      - key: NEXT_PUBLIC_DASHBOARD_URL
-        value: https://apex-dashboard.onrender.com
+      - key: NODE_ENV
+        value: production

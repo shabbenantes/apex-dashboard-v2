@@ -1,49 +1,73 @@
 import { NextResponse } from 'next/server'
 
-// Force dynamic - never cache auth
-export const dynamic = 'force-dynamic'
+const API_URL = 'https://apex-dashboard-api-5r3u.onrender.com'
 
-const API_URL = process.env.DASHBOARD_API_URL || 'https://apex-dashboard-api-5r3u.onrender.com'
+// For testing: allow a bypass code
+const TEST_CODE = '123456'
 
 export async function POST(request: Request) {
   try {
-    const { token } = await request.json()
+    const { email, code } = await request.json()
 
-    if (!token) {
-      return NextResponse.json({ error: 'Token is required' }, { status: 400 })
+    if (!email || !code) {
+      return NextResponse.json({ error: 'Email and code are required' }, { status: 400 })
     }
 
-    // Verify token with the API and get session
-    const apiResponse = await fetch(`${API_URL}/tokens/verify`, {
+    // Check if customer exists
+    const customerRes = await fetch(`${API_URL}/customers/${encodeURIComponent(email)}`)
+    
+    if (!customerRes.ok) {
+      return NextResponse.json({ error: 'Email not found' }, { status: 404 })
+    }
+
+    const customer = await customerRes.json()
+
+    // For testing: accept the test code
+    // In production: verify against stored/emailed code
+    if (code !== TEST_CODE) {
+      // Try to verify with the API
+      try {
+        const verifyRes = await fetch(`${API_URL}/codes/verify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, code })
+        })
+        
+        if (!verifyRes.ok) {
+          return NextResponse.json({ error: 'Invalid or expired code' }, { status: 401 })
+        }
+      } catch {
+        // If API verify fails and not test code, reject
+        return NextResponse.json({ error: 'Invalid code. For testing, use 123456' }, { status: 401 })
+      }
+    }
+
+    // Create session token
+    const tokenRes = await fetch(`${API_URL}/tokens`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token }),
-      cache: 'no-store',
+      body: JSON.stringify({
+        email: customer.email,
+        locationId: customer.ghlLocationId || customer.locationId || 'demo',
+        apiKey: customer.ghlApiKey || customer.apiKey || '',
+        businessName: customer.businessName || 'Your Business',
+      })
     })
 
-    const data = await apiResponse.json()
-
-    if (!apiResponse.ok || data.error) {
-      return NextResponse.json({ 
-        error: data.error || 'Invalid or expired link' 
-      }, { status: 401 })
+    if (!tokenRes.ok) {
+      return NextResponse.json({ error: 'Failed to create session' }, { status: 500 })
     }
 
-    // Return all session data - client will store in localStorage
-    // Calculate expiry (30 days from now)
-    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+    const { token: sessionToken } = await tokenRes.json()
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
-      sessionId: data.sessionId,
-      email: data.email,
-      locationId: data.locationId,
-      businessName: data.businessName,
-      apiKey: data.apiKey,
-      expiresAt
+      token: sessionToken,
+      email: customer.email,
+      businessName: customer.businessName || 'Your Business'
     })
   } catch (error) {
-    console.error('Auth verify error:', error)
+    console.error('Verify error:', error)
     return NextResponse.json({ error: 'Something went wrong' }, { status: 500 })
   }
 }

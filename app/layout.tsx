@@ -1,41 +1,26 @@
-import type { Metadata, Viewport } from 'next'
-import './globals.css'
+import type { Metadata } from "next";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: 'Apex Dashboard',
-  description: 'Manage your AI messaging assistant',
-  manifest: '/manifest.json',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'black-translucent',
-    title: 'Apex',
-  },
-}
-
-export const viewport: Viewport = {
-  themeColor: '#6366F1',
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 1,
-}
+  title: "Apex Dashboard",
+  description: "Manage your AI messaging assistant",
+};
 
 export default function RootLayout({
   children,
-}: {
-  children: React.ReactNode
-}) {
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html lang="en">
       <head>
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
-        <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="mobile-web-app-capable" content="yes" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
       </head>
       <body className="antialiased">
         {children}
       </body>
     </html>
-  )
+  );
 }
