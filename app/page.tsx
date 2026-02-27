@@ -10,6 +10,7 @@ export default function LoginPage() {
   const [step, setStep] = useState<'email' | 'code'>('email')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [focused, setFocused] = useState(false)
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -59,409 +60,411 @@ export default function LoginPage() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
         
-        .login-page {
-          min-height: 100vh;
-          display: flex;
+        body {
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          background: #ffffff;
           -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
         }
         
-        .login-left {
-          flex: 1;
-          background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-          padding: 3rem;
-          color: white;
+        .page {
+          min-height: 100vh;
+          background: #09090b;
           position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 24px;
           overflow: hidden;
         }
         
-        .login-left::before {
-          content: '';
+        /* Gradient orbs */
+        .orb {
           position: absolute;
-          top: -50%;
-          left: -50%;
-          width: 200%;
-          height: 200%;
-          background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+          border-radius: 50%;
+          filter: blur(80px);
+          opacity: 0.5;
+          pointer-events: none;
+        }
+        .orb-1 {
+          width: 600px;
+          height: 600px;
+          background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+          top: -200px;
+          right: -100px;
+          opacity: 0.3;
+        }
+        .orb-2 {
+          width: 400px;
+          height: 400px;
+          background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+          bottom: -100px;
+          left: -100px;
+          opacity: 0.2;
+        }
+        
+        /* Noise texture overlay */
+        .noise {
+          position: absolute;
+          inset: 0;
+          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+          opacity: 0.03;
           pointer-events: none;
         }
         
-        .login-left-content {
+        /* Grid lines */
+        .grid {
+          position: absolute;
+          inset: 0;
+          background-image: 
+            linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+          background-size: 64px 64px;
+          pointer-events: none;
+        }
+        
+        .container {
           position: relative;
-          z-index: 1;
-          text-align: center;
-          max-width: 400px;
-        }
-        
-        .login-logo {
-          font-size: 1.5rem;
-          font-weight: 800;
-          margin-bottom: 2rem;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.5rem;
-        }
-        
-        .login-left h1 {
-          font-size: 2.5rem;
-          font-weight: 800;
-          margin-bottom: 1rem;
-          line-height: 1.2;
-        }
-        
-        .login-left p {
-          font-size: 1.1rem;
-          opacity: 0.9;
-          line-height: 1.6;
-        }
-        
-        .login-features {
-          margin-top: 3rem;
-          text-align: left;
-        }
-        
-        .login-feature {
-          display: flex;
-          align-items: flex-start;
-          gap: 1rem;
-          margin-bottom: 1.25rem;
-        }
-        
-        .login-feature-icon {
-          width: 40px;
-          height: 40px;
-          background: rgba(255,255,255,0.2);
-          border-radius: 10px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 1.25rem;
-          flex-shrink: 0;
-        }
-        
-        .login-feature-text h3 {
-          font-size: 1rem;
-          font-weight: 600;
-          margin-bottom: 0.25rem;
-        }
-        
-        .login-feature-text p {
-          font-size: 0.875rem;
-          opacity: 0.8;
-        }
-        
-        .login-right {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-          padding: 3rem;
-          background: #f8fafc;
-        }
-        
-        .login-form-container {
           width: 100%;
-          max-width: 400px;
+          max-width: 420px;
+          z-index: 10;
         }
         
-        .login-form-header {
-          margin-bottom: 2rem;
+        /* Logo */
+        .logo {
+          text-align: center;
+          margin-bottom: 48px;
         }
-        
-        .login-form-header h2 {
-          font-size: 1.75rem;
-          font-weight: 700;
-          color: #0f172a;
-          margin-bottom: 0.5rem;
-        }
-        
-        .login-form-header p {
-          color: #64748b;
-          font-size: 1rem;
-        }
-        
-        .login-form {
-          background: white;
+        .logo-mark {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 56px;
+          height: 56px;
+          background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
           border-radius: 16px;
-          padding: 2rem;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-          border: 1px solid #e2e8f0;
+          font-size: 28px;
+          margin-bottom: 20px;
+          box-shadow: 
+            0 0 0 1px rgba(255,255,255,0.1),
+            0 20px 40px -10px rgba(99, 102, 241, 0.5);
+        }
+        .logo-text {
+          font-size: 24px;
+          font-weight: 700;
+          color: #fafafa;
+          letter-spacing: -0.02em;
+        }
+        .logo-sub {
+          font-size: 14px;
+          color: #71717a;
+          margin-top: 6px;
         }
         
+        /* Card */
+        .card {
+          background: rgba(24, 24, 27, 0.8);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 20px;
+          padding: 32px;
+          box-shadow: 
+            0 0 0 1px rgba(255,255,255,0.05) inset,
+            0 20px 50px -10px rgba(0,0,0,0.5);
+        }
+        
+        .card-header {
+          margin-bottom: 28px;
+        }
+        .card-header h1 {
+          font-size: 22px;
+          font-weight: 600;
+          color: #fafafa;
+          margin-bottom: 8px;
+          letter-spacing: -0.01em;
+        }
+        .card-header p {
+          font-size: 14px;
+          color: #71717a;
+          line-height: 1.5;
+        }
+        
+        /* Form */
         .form-group {
-          margin-bottom: 1.5rem;
+          margin-bottom: 20px;
         }
-        
         .form-group label {
           display: block;
-          font-size: 0.875rem;
-          font-weight: 600;
-          color: #0f172a;
-          margin-bottom: 0.5rem;
+          font-size: 13px;
+          font-weight: 500;
+          color: #a1a1aa;
+          margin-bottom: 8px;
         }
         
-        .form-group input {
+        .input-wrapper {
+          position: relative;
+        }
+        .input-wrapper.focused::before {
+          content: '';
+          position: absolute;
+          inset: -2px;
+          border-radius: 14px;
+          background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+          opacity: 0.5;
+          z-index: -1;
+        }
+        
+        .input {
           width: 100%;
-          padding: 0.875rem 1rem;
-          font-size: 1rem;
-          border: 2px solid #e2e8f0;
-          border-radius: 10px;
-          background: #f8fafc;
-          color: #0f172a;
+          padding: 14px 16px;
+          font-size: 15px;
+          font-family: inherit;
+          color: #fafafa;
+          background: rgba(0,0,0,0.3);
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 12px;
           outline: none;
-          transition: all 0.2s;
-          font-family: inherit;
+          transition: all 0.2s ease;
+        }
+        .input::placeholder {
+          color: #52525b;
+        }
+        .input:focus {
+          border-color: rgba(99, 102, 241, 0.5);
+          background: rgba(0,0,0,0.4);
         }
         
-        .form-group input:focus {
-          border-color: #6366f1;
-          background: white;
-          box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
-        }
-        
-        .form-group input::placeholder {
-          color: #94a3b8;
-        }
-        
-        .form-group input.code-input {
+        .input-code {
           text-align: center;
-          font-size: 1.5rem;
+          font-size: 24px;
+          font-family: 'SF Mono', 'Fira Code', monospace;
           letter-spacing: 0.5em;
-          font-family: monospace;
-          padding: 1rem;
+          padding: 16px;
         }
         
-        .error-message {
-          background: #fef2f2;
-          border: 1px solid #fecaca;
-          color: #dc2626;
-          padding: 0.875rem 1rem;
-          border-radius: 10px;
-          font-size: 0.875rem;
-          margin-bottom: 1.5rem;
+        /* Error */
+        .error {
+          background: rgba(239, 68, 68, 0.1);
+          border: 1px solid rgba(239, 68, 68, 0.2);
+          color: #fca5a5;
+          padding: 12px 16px;
+          border-radius: 12px;
+          font-size: 13px;
+          margin-bottom: 20px;
         }
         
-        .submit-btn {
+        /* Button */
+        .btn {
           width: 100%;
-          padding: 1rem;
-          font-size: 1rem;
+          padding: 14px 20px;
+          font-size: 15px;
           font-weight: 600;
-          color: white;
-          background: #6366f1;
-          border: none;
-          border-radius: 10px;
-          cursor: pointer;
-          transition: all 0.2s;
           font-family: inherit;
+          color: white;
+          background: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%);
+          border: none;
+          border-radius: 12px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          position: relative;
+          overflow: hidden;
         }
-        
-        .submit-btn:hover:not(:disabled) {
-          background: #4f46e5;
+        .btn::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+          opacity: 0;
+          transition: opacity 0.2s ease;
+        }
+        .btn:hover:not(:disabled)::before {
+          opacity: 1;
+        }
+        .btn:hover:not(:disabled) {
           transform: translateY(-1px);
+          box-shadow: 0 10px 30px -5px rgba(99, 102, 241, 0.4);
         }
-        
-        .submit-btn:disabled {
-          opacity: 0.6;
+        .btn:active:not(:disabled) {
+          transform: translateY(0);
+        }
+        .btn:disabled {
+          opacity: 0.5;
           cursor: not-allowed;
         }
+        .btn span {
+          position: relative;
+          z-index: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+        }
         
-        .back-link {
-          display: block;
-          text-align: center;
-          margin-top: 1rem;
-          color: #6366f1;
-          font-size: 0.875rem;
+        .btn-ghost {
+          background: transparent;
+          color: #71717a;
+          padding: 12px;
+          margin-top: 12px;
           font-weight: 500;
-          cursor: pointer;
-          background: none;
-          border: none;
-          font-family: inherit;
+          font-size: 13px;
+        }
+        .btn-ghost:hover:not(:disabled) {
+          color: #fafafa;
+          background: rgba(255,255,255,0.05);
+          box-shadow: none;
+          transform: none;
+        }
+        .btn-ghost::before {
+          display: none;
         }
         
-        .back-link:hover {
-          color: #4f46e5;
-        }
-        
-        .email-sent-icon {
+        /* Success icon */
+        .success-icon {
           width: 64px;
           height: 64px;
-          background: #e0e7ff;
+          background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(34, 197, 94, 0.1) 100%);
+          border: 1px solid rgba(34, 197, 94, 0.3);
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          margin: 0 auto 1.5rem;
+          margin: 0 auto 24px;
+        }
+        .success-icon svg {
+          width: 28px;
+          height: 28px;
+          color: #4ade80;
         }
         
-        .email-sent-icon svg {
-          width: 32px;
-          height: 32px;
-          color: #6366f1;
-        }
-        
-        .login-footer {
-          margin-top: 2rem;
+        /* Footer */
+        .footer {
           text-align: center;
-          color: #64748b;
-          font-size: 0.875rem;
+          margin-top: 32px;
+          font-size: 13px;
+          color: #52525b;
         }
-        
-        .login-footer a {
+        .footer a {
           color: #6366f1;
           text-decoration: none;
+          transition: color 0.2s;
+        }
+        .footer a:hover {
+          color: #818cf8;
         }
         
-        .login-footer a:hover {
-          text-decoration: underline;
+        /* Spinner */
+        @keyframes spin {
+          to { transform: rotate(360deg); }
         }
-        
-        @media (max-width: 900px) {
-          .login-page {
-            flex-direction: column;
-          }
-          .login-left {
-            padding: 2rem;
-            min-height: auto;
-          }
-          .login-left h1 {
-            font-size: 1.75rem;
-          }
-          .login-features {
-            display: none;
-          }
-          .login-right {
-            padding: 2rem;
-          }
+        .spinner {
+          width: 18px;
+          height: 18px;
+          border: 2px solid rgba(255,255,255,0.3);
+          border-top-color: white;
+          border-radius: 50%;
+          animation: spin 0.6s linear infinite;
         }
       `}</style>
 
-      <div className="login-page">
-        {/* Left Side - Branding */}
-        <div className="login-left">
-          <div className="login-left-content">
-            <div className="login-logo">
-              ⚡ Apex Automation
-            </div>
-            <h1>Your AI messaging dashboard</h1>
-            <p>Monitor your AI assistant, view conversations, and manage your settings all in one place.</p>
-            
-            <div className="login-features">
-              <div className="login-feature">
-                <div className="login-feature-icon">💬</div>
-                <div className="login-feature-text">
-                  <h3>View Conversations</h3>
-                  <p>See every message your AI handles</p>
-                </div>
-              </div>
-              <div className="login-feature">
-                <div className="login-feature-icon">📊</div>
-                <div className="login-feature-text">
-                  <h3>Track Performance</h3>
-                  <p>Response times and message stats</p>
-                </div>
-              </div>
-              <div className="login-feature">
-                <div className="login-feature-icon">⚙️</div>
-                <div className="login-feature-text">
-                  <h3>Customize Your AI</h3>
-                  <p>Adjust tone, responses, and more</p>
-                </div>
-              </div>
-            </div>
+      <div className="page">
+        <div className="orb orb-1" />
+        <div className="orb orb-2" />
+        <div className="noise" />
+        <div className="grid" />
+        
+        <div className="container">
+          <div className="logo">
+            <div className="logo-mark">⚡</div>
+            <div className="logo-text">Apex Automation</div>
+            <div className="logo-sub">Client Dashboard</div>
           </div>
-        </div>
 
-        {/* Right Side - Form */}
-        <div className="login-right">
-          <div className="login-form-container">
+          <div className="card">
             {step === 'email' ? (
               <>
-                <div className="login-form-header">
-                  <h2>Sign in to your dashboard</h2>
-                  <p>Enter your email to receive a login code</p>
+                <div className="card-header">
+                  <h1>Welcome back</h1>
+                  <p>Enter your email to receive a secure login code</p>
                 </div>
 
-                <div className="login-form">
-                  <form onSubmit={handleEmailSubmit}>
-                    <div className="form-group">
-                      <label>Email address</label>
+                <form onSubmit={handleEmailSubmit}>
+                  <div className="form-group">
+                    <label>Email address</label>
+                    <div className={`input-wrapper ${focused ? 'focused' : ''}`}>
                       <input
                         type="email"
+                        className="input"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder="you@business.com"
+                        onFocus={() => setFocused(true)}
+                        onBlur={() => setFocused(false)}
+                        placeholder="you@company.com"
                         required
                       />
                     </div>
+                  </div>
 
-                    {error && <div className="error-message">{error}</div>}
+                  {error && <div className="error">{error}</div>}
 
-                    <button type="submit" className="submit-btn" disabled={loading || !email}>
-                      {loading ? 'Sending...' : 'Send Login Code'}
-                    </button>
-                  </form>
-                </div>
+                  <button type="submit" className="btn" disabled={loading || !email}>
+                    <span>
+                      {loading ? <div className="spinner" /> : 'Continue'}
+                    </span>
+                  </button>
+                </form>
               </>
             ) : (
               <>
-                <div className="login-form-header" style={{ textAlign: 'center' }}>
-                  <div className="email-sent-icon">
+                <div className="card-header" style={{ textAlign: 'center' }}>
+                  <div className="success-icon">
                     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
                   </div>
-                  <h2>Check your email</h2>
-                  <p>We sent a 6-digit code to <strong>{email}</strong></p>
+                  <h1>Check your email</h1>
+                  <p>We sent a 6-digit code to <strong style={{ color: '#fafafa' }}>{email}</strong></p>
                 </div>
 
-                <div className="login-form">
-                  <form onSubmit={handleCodeSubmit}>
-                    <div className="form-group">
-                      <label>Enter code</label>
-                      <input
-                        type="text"
-                        className="code-input"
-                        value={code}
-                        onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                        placeholder="000000"
-                        maxLength={6}
-                        autoFocus
-                        required
-                      />
-                    </div>
+                <form onSubmit={handleCodeSubmit}>
+                  <div className="form-group">
+                    <label style={{ textAlign: 'center', display: 'block' }}>Enter verification code</label>
+                    <input
+                      type="text"
+                      className="input input-code"
+                      value={code}
+                      onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="······"
+                      maxLength={6}
+                      autoFocus
+                      required
+                    />
+                  </div>
 
-                    {error && <div className="error-message">{error}</div>}
+                  {error && <div className="error">{error}</div>}
 
-                    <button type="submit" className="submit-btn" disabled={loading || code.length !== 6}>
-                      {loading ? 'Verifying...' : 'Sign In'}
-                    </button>
+                  <button type="submit" className="btn" disabled={loading || code.length !== 6}>
+                    <span>
+                      {loading ? <div className="spinner" /> : 'Sign in'}
+                    </span>
+                  </button>
 
-                    <button
-                      type="button"
-                      className="back-link"
-                      onClick={() => { setStep('email'); setError(''); setCode(''); }}
-                    >
-                      ← Use a different email
-                    </button>
-                  </form>
-                </div>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() => { setStep('email'); setError(''); setCode(''); }}
+                  >
+                    <span>← Use different email</span>
+                  </button>
+                </form>
               </>
             )}
+          </div>
 
-            <div className="login-footer">
-              Need help? <a href="mailto:shane@getapexautomation.com">Contact support</a>
-            </div>
+          <div className="footer">
+            Need help? <a href="mailto:shane@getapexautomation.com">Contact support</a>
           </div>
         </div>
       </div>
