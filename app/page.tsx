@@ -71,14 +71,21 @@ export default function LoginPage() {
         }
         
         .page {
-          min-height: 100vh;
+          height: 100vh;
+          height: 100dvh;
           background: #09090b;
-          position: relative;
+          position: fixed;
+          inset: 0;
           display: flex;
           align-items: center;
           justify-content: center;
           padding: 24px;
           overflow: hidden;
+        }
+        
+        html, body {
+          overflow: hidden;
+          height: 100%;
         }
         
         /* Gradient orbs */
@@ -136,7 +143,7 @@ export default function LoginPage() {
         /* Logo */
         .logo {
           text-align: center;
-          margin-bottom: 48px;
+          margin-bottom: 32px;
         }
         .logo-mark {
           display: inline-flex;
@@ -170,14 +177,14 @@ export default function LoginPage() {
           backdrop-filter: blur(20px);
           border: 1px solid rgba(255,255,255,0.08);
           border-radius: 20px;
-          padding: 32px;
+          padding: 28px;
           box-shadow: 
             0 0 0 1px rgba(255,255,255,0.05) inset,
             0 20px 50px -10px rgba(0,0,0,0.5);
         }
         
         .card-header {
-          margin-bottom: 28px;
+          margin-bottom: 24px;
         }
         .card-header h1 {
           font-size: 22px;
@@ -342,7 +349,7 @@ export default function LoginPage() {
         /* Footer */
         .footer {
           text-align: center;
-          margin-top: 32px;
+          margin-top: 24px;
           font-size: 13px;
           color: #52525b;
         }
