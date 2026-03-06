@@ -44,7 +44,7 @@ export default function LoginPage() {
       const data = await res.json()
       if (res.ok && data.token) {
         localStorage.setItem('apex_token', data.token)
-        localStorage.setItem('apex_user', JSON.stringify({ email: data.email, businessName: data.businessName }))
+        localStorage.setItem('apex_user', JSON.stringify({ email: data.email, businessName: data.businessName, locationId: data.locationId || '' }))
         router.push('/dashboard')
       } else {
         setError(data.error || 'Invalid code')

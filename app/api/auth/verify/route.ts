@@ -64,7 +64,8 @@ export async function POST(request: Request) {
       success: true,
       token: sessionToken,
       email: customer.email,
-      businessName: customer.businessName || 'Your Business'
+      businessName: customer.businessName || 'Your Business',
+      locationId: customer.ghlLocationId || customer.locationId || ''
     })
   } catch (error) {
     console.error('Verify error:', error)
