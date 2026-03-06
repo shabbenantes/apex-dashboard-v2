@@ -27,86 +27,109 @@ function decodeJWT(token: string): any {
   }
 }
 
-// Setup/Onboarding Screen for new users
+// Setup/Onboarding Screen for new users - Dark theme matching website
 function SetupScreen({ user, onRefresh }: { user: User; onRefresh: () => void }) {
   const ghlConnectUrl = user.locationId 
     ? `https://app.getapexautomation.com/v2/location/${user.locationId}/integration/facebook-instagram`
     : null
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-white">
+    <div className="min-h-screen bg-[#0a0a0f] relative overflow-hidden">
+      {/* Gradient orbs */}
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-violet-600/10 rounded-full blur-3xl" />
+      
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-100 sticky top-0 z-40">
+      <header className="relative z-10 border-b border-white/10 backdrop-blur-xl bg-black/20">
         <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
+            <div className="w-9 h-9 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/25">
               <span className="text-lg">⚡</span>
             </div>
-            <span className="font-bold text-gray-900">Apex Automation</span>
+            <span className="font-bold text-white">Apex Automation</span>
           </div>
         </div>
       </header>
 
-      <main className="max-w-xl mx-auto px-4 py-12">
+      <main className="relative z-10 max-w-lg mx-auto px-4 py-16">
         {/* Welcome */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl mb-6 shadow-xl shadow-indigo-500/30">
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-violet-500 to-purple-600 rounded-2xl mb-6 shadow-2xl shadow-purple-500/30">
             <span className="text-4xl">🚀</span>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-3">
-            Welcome, {user.businessName || 'there'}!
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            Welcome, {user.businessName?.split(' ')[0] || 'there'}!
           </h1>
-          <p className="text-lg text-gray-600">
-            Let's connect your social accounts so your AI can start responding to messages.
+          <p className="text-lg text-gray-400">
+            One quick step to activate your AI assistant
           </p>
         </div>
 
-        {/* Setup Steps */}
-        <div className="bg-white rounded-3xl border border-gray-200 shadow-xl shadow-gray-200/50 overflow-hidden">
-          {/* Step 1 - Connect */}
-          <div className="p-6 border-b border-gray-100">
+        {/* Main Card - Glassmorphism */}
+        <div className="backdrop-blur-xl bg-white/5 rounded-3xl border border-white/10 p-8 shadow-2xl">
+          {/* Connect Section */}
+          <div className="text-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-violet-500/20 border border-violet-500/30 text-violet-300 text-sm font-medium mb-6">
+              <span className="w-2 h-2 bg-violet-400 rounded-full animate-pulse" />
+              Step 1 of 1
+            </div>
+            
+            <h2 className="text-xl font-semibold text-white mb-3">
+              Connect Your Social Accounts
+            </h2>
+            <p className="text-gray-400 mb-8">
+              Link your Facebook & Instagram so we can respond to DMs automatically
+            </p>
+            
+            {ghlConnectUrl ? (
+              <a
+                href={ghlConnectUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-3 w-full px-6 py-4 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-semibold rounded-2xl hover:from-violet-500 hover:to-purple-500 transition-all duration-300 shadow-xl shadow-purple-500/25 hover:shadow-2xl hover:shadow-purple-500/40 hover:-translate-y-0.5 group"
+              >
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                </svg>
+                Connect Facebook & Instagram
+                <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+            ) : (
+              <p className="text-amber-400 bg-amber-500/10 border border-amber-500/20 px-4 py-3 rounded-xl">
+                Contact support to get your connection link.
+              </p>
+            )}
+          </div>
+          
+          {/* Divider */}
+          <div className="my-8 border-t border-white/10" />
+          
+          {/* What happens next */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider">What happens next</h3>
             <div className="flex items-start gap-4">
-              <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                <span className="text-indigo-600 font-bold">1</span>
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
               </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-gray-900 mb-1">Connect Facebook & Instagram</h3>
-                <p className="text-sm text-gray-500 mb-4">
-                  Link your business pages so we can respond to DMs automatically.
-                </p>
-                
-                {ghlConnectUrl ? (
-                  <a
-                    href={ghlConnectUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:shadow-indigo-500/30 hover:-translate-y-0.5"
-                  >
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                    </svg>
-                    Connect Facebook & Instagram
-                  </a>
-                ) : (
-                  <p className="text-sm text-amber-600 bg-amber-50 px-4 py-2 rounded-lg">
-                    Contact support to get your connection link.
-                  </p>
-                )}
+              <div>
+                <p className="text-white font-medium">AI starts responding instantly</p>
+                <p className="text-sm text-gray-500">Your assistant handles DMs 24/7</p>
               </div>
             </div>
-          </div>
-
-          {/* Step 2 - Done */}
-          <div className="p-6 bg-gray-50">
             <div className="flex items-start gap-4">
-              <div className="w-10 h-10 bg-gray-200 rounded-xl flex items-center justify-center flex-shrink-0">
-                <span className="text-gray-400 font-bold">2</span>
+              <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
               </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-gray-400 mb-1">You're all set!</h3>
-                <p className="text-sm text-gray-400">
-                  Once connected, your AI will automatically respond to new messages.
-                </p>
+              <div>
+                <p className="text-white font-medium">Never miss a lead</p>
+                <p className="text-sm text-gray-500">Instant replies = more bookings</p>
               </div>
             </div>
           </div>
@@ -117,7 +140,7 @@ function SetupScreen({ user, onRefresh }: { user: User; onRefresh: () => void })
           <p className="text-sm text-gray-500 mb-3">Already connected your accounts?</p>
           <button
             onClick={onRefresh}
-            className="text-indigo-600 font-medium text-sm hover:text-indigo-700"
+            className="text-violet-400 font-medium text-sm hover:text-violet-300 transition-colors"
           >
             Check connection status →
           </button>
@@ -125,10 +148,10 @@ function SetupScreen({ user, onRefresh }: { user: User; onRefresh: () => void })
 
         {/* Help */}
         <div className="mt-12 text-center">
-          <p className="text-sm text-gray-400">
-            Need help? Email us at{' '}
-            <a href="mailto:shane@getapexautomation.com" className="text-indigo-600 hover:text-indigo-700">
-              shane@getapexautomation.com
+          <p className="text-sm text-gray-600">
+            Need help?{' '}
+            <a href="mailto:support@getapexautomation.com" className="text-violet-400 hover:text-violet-300 transition-colors">
+              support@getapexautomation.com
             </a>
           </p>
         </div>
