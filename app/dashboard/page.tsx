@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
 interface User {
@@ -9,8 +9,19 @@ interface User {
   businessName: string
 }
 
+// Decode JWT payload without verification (API validates on use)
+function decodeJWT(token: string): any {
+  try {
+    const payload = token.split('.')[1]
+    return JSON.parse(atob(payload))
+  } catch {
+    return null
+  }
+}
+
 export default function DashboardPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [user, setUser] = useState<User | null>(null)
   const [aiActive, setAiActive] = useState(true)
   const [stats, setStats] = useState({
@@ -20,6 +31,30 @@ export default function DashboardPage() {
   })
 
   useEffect(() => {
+    // Check for SSO token in URL (from GHL custom menu link)
+    const ssoToken = searchParams.get('token')
+    
+    if (ssoToken) {
+      const payload = decodeJWT(ssoToken)
+      if (payload && payload.email) {
+        // Save the SSO session
+        localStorage.setItem('apex_token', ssoToken)
+        localStorage.setItem('apex_user', JSON.stringify({
+          email: payload.email,
+          businessName: payload.businessName || ''
+        }))
+        
+        // Remove token from URL for cleaner look
+        const url = new URL(window.location.href)
+        url.searchParams.delete('token')
+        window.history.replaceState({}, '', url.toString())
+        
+        setUser({ email: payload.email, businessName: payload.businessName || '' })
+        return
+      }
+    }
+    
+    // Normal session check
     const token = localStorage.getItem('apex_token')
     const userData = localStorage.getItem('apex_user')
     
@@ -29,7 +64,7 @@ export default function DashboardPage() {
     }
 
     setUser(JSON.parse(userData))
-  }, [router])
+  }, [router, searchParams])
 
   const handleLogout = () => {
     localStorage.removeItem('apex_token')

@@ -1,24 +1,58 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+
+// Decode JWT payload without verification (API validates on use)
+function decodeJWT(token: string): any {
+  try {
+    const payload = token.split('.')[1]
+    return JSON.parse(atob(payload))
+  } catch {
+    return null
+  }
+}
 
 export default function SettingsPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [loading, setLoading] = useState(true)
   const [tone, setTone] = useState('friendly')
   const [emojis, setEmojis] = useState('yes')
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
+    // Check for SSO token in URL (from GHL custom menu link)
+    const ssoToken = searchParams.get('token')
+    
+    if (ssoToken) {
+      const payload = decodeJWT(ssoToken)
+      if (payload && payload.email) {
+        // Save the SSO session
+        localStorage.setItem('apex_token', ssoToken)
+        localStorage.setItem('apex_user', JSON.stringify({
+          email: payload.email,
+          businessName: payload.businessName || ''
+        }))
+        
+        // Remove token from URL for cleaner look
+        const url = new URL(window.location.href)
+        url.searchParams.delete('token')
+        window.history.replaceState({}, '', url.toString())
+        
+        setLoading(false)
+        return
+      }
+    }
+    
     const token = localStorage.getItem('apex_token')
     if (!token) {
       router.push('/')
       return
     }
     setLoading(false)
-  }, [router])
+  }, [router, searchParams])
 
   const handleSave = () => {
     setSaved(true)
