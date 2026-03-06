@@ -7,6 +7,14 @@ import Link from 'next/link'
 interface User {
   email: string
   businessName: string
+  locationId?: string
+}
+
+interface ConnectionStatus {
+  facebook: boolean
+  instagram: boolean
+  pageName?: string
+  igUsername?: string
 }
 
 // Decode JWT payload without verification (API validates on use)
@@ -19,67 +27,119 @@ function decodeJWT(token: string): any {
   }
 }
 
-export default function DashboardPage() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const [user, setUser] = useState<User | null>(null)
+// Setup/Onboarding Screen for new users
+function SetupScreen({ user, onRefresh }: { user: User; onRefresh: () => void }) {
+  const ghlConnectUrl = user.locationId 
+    ? `https://app.getapexautomation.com/v2/location/${user.locationId}/integration/facebook-instagram`
+    : null
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-white">
+      {/* Header */}
+      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-100 sticky top-0 z-40">
+        <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
+              <span className="text-lg">⚡</span>
+            </div>
+            <span className="font-bold text-gray-900">Apex Automation</span>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-xl mx-auto px-4 py-12">
+        {/* Welcome */}
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl mb-6 shadow-xl shadow-indigo-500/30">
+            <span className="text-4xl">🚀</span>
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-3">
+            Welcome, {user.businessName || 'there'}!
+          </h1>
+          <p className="text-lg text-gray-600">
+            Let's connect your social accounts so your AI can start responding to messages.
+          </p>
+        </div>
+
+        {/* Setup Steps */}
+        <div className="bg-white rounded-3xl border border-gray-200 shadow-xl shadow-gray-200/50 overflow-hidden">
+          {/* Step 1 - Connect */}
+          <div className="p-6 border-b border-gray-100">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                <span className="text-indigo-600 font-bold">1</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-gray-900 mb-1">Connect Facebook & Instagram</h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  Link your business pages so we can respond to DMs automatically.
+                </p>
+                
+                {ghlConnectUrl ? (
+                  <a
+                    href={ghlConnectUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:shadow-indigo-500/30 hover:-translate-y-0.5"
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    </svg>
+                    Connect Facebook & Instagram
+                  </a>
+                ) : (
+                  <p className="text-sm text-amber-600 bg-amber-50 px-4 py-2 rounded-lg">
+                    Contact support to get your connection link.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Step 2 - Done */}
+          <div className="p-6 bg-gray-50">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 bg-gray-200 rounded-xl flex items-center justify-center flex-shrink-0">
+                <span className="text-gray-400 font-bold">2</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-gray-400 mb-1">You're all set!</h3>
+                <p className="text-sm text-gray-400">
+                  Once connected, your AI will automatically respond to new messages.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Already connected? */}
+        <div className="mt-8 text-center">
+          <p className="text-sm text-gray-500 mb-3">Already connected your accounts?</p>
+          <button
+            onClick={onRefresh}
+            className="text-indigo-600 font-medium text-sm hover:text-indigo-700"
+          >
+            Check connection status →
+          </button>
+        </div>
+
+        {/* Help */}
+        <div className="mt-12 text-center">
+          <p className="text-sm text-gray-400">
+            Need help? Email us at{' '}
+            <a href="mailto:shane@getapexautomation.com" className="text-indigo-600 hover:text-indigo-700">
+              shane@getapexautomation.com
+            </a>
+          </p>
+        </div>
+      </main>
+    </div>
+  )
+}
+
+// Main Dashboard for connected users
+function MainDashboard({ user, connection, onLogout }: { user: User; connection: ConnectionStatus; onLogout: () => void }) {
   const [aiActive, setAiActive] = useState(true)
-  const [stats, setStats] = useState({
-    messagesThisWeek: 47,
-    avgResponseTime: '< 1 min',
-    conversations: 12
-  })
-
-  useEffect(() => {
-    // Check for SSO token in URL (from GHL custom menu link)
-    const ssoToken = searchParams.get('token')
-    
-    if (ssoToken) {
-      const payload = decodeJWT(ssoToken)
-      if (payload && payload.email) {
-        // Save the SSO session
-        localStorage.setItem('apex_token', ssoToken)
-        localStorage.setItem('apex_user', JSON.stringify({
-          email: payload.email,
-          businessName: payload.businessName || ''
-        }))
-        
-        // Remove token from URL for cleaner look
-        const url = new URL(window.location.href)
-        url.searchParams.delete('token')
-        window.history.replaceState({}, '', url.toString())
-        
-        setUser({ email: payload.email, businessName: payload.businessName || '' })
-        return
-      }
-    }
-    
-    // Normal session check
-    const token = localStorage.getItem('apex_token')
-    const userData = localStorage.getItem('apex_user')
-    
-    if (!token || !userData) {
-      router.push('/')
-      return
-    }
-
-    setUser(JSON.parse(userData))
-  }, [router, searchParams])
-
-  const handleLogout = () => {
-    localStorage.removeItem('apex_token')
-    localStorage.removeItem('apex_user')
-    router.push('/')
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
-  }
-
   const firstName = user.businessName?.split(' ')[0] || 'there'
 
   return (
@@ -95,24 +155,53 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-500 hidden sm:block">{user.email}</span>
-            <button
-              onClick={handleLogout}
-              className="text-sm text-gray-500 hover:text-gray-700"
-            >
+            <button onClick={onLogout} className="text-sm text-gray-500 hover:text-gray-700">
               Sign out
             </button>
           </div>
         </div>
       </header>
 
-      {/* Main */}
       <main className="max-w-5xl mx-auto px-4 py-8">
         {/* Welcome */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">
-            Hey, {firstName}! 👋
-          </h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">Hey, {firstName}! 👋</h1>
           <p className="text-gray-500">Here's how your AI assistant is performing.</p>
+        </div>
+
+        {/* Connection Status */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-5 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-900">Connected Accounts</h3>
+            {user.locationId && (
+              <a
+                href={`https://app.getapexautomation.com/v2/location/${user.locationId}/integration/facebook-instagram`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+              >
+                Manage →
+              </a>
+            )}
+          </div>
+          <div className="flex gap-4">
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-xl ${connection.facebook ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+              </svg>
+              <span className="text-sm font-medium">
+                {connection.facebook ? (connection.pageName || 'Connected') : 'Not connected'}
+              </span>
+            </div>
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-xl ${connection.instagram ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+              </svg>
+              <span className="text-sm font-medium">
+                {connection.instagram ? (connection.igUsername ? `@${connection.igUsername}` : 'Connected') : 'Not connected'}
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* AI Status */}
@@ -153,22 +242,22 @@ export default function DashboardPage() {
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-8">
           <div className="bg-white rounded-2xl border border-gray-200 p-5 text-center">
-            <p className="text-3xl font-bold text-gray-900 mb-1">{stats.messagesThisWeek}</p>
+            <p className="text-3xl font-bold text-gray-900 mb-1">--</p>
             <p className="text-xs text-gray-500 font-medium">Messages this week</p>
           </div>
           <div className="bg-white rounded-2xl border border-gray-200 p-5 text-center">
-            <p className="text-3xl font-bold text-emerald-600 mb-1">{stats.avgResponseTime}</p>
+            <p className="text-3xl font-bold text-emerald-600 mb-1">&lt; 1 min</p>
             <p className="text-xs text-gray-500 font-medium">Avg response</p>
           </div>
           <div className="bg-white rounded-2xl border border-gray-200 p-5 text-center">
-            <p className="text-3xl font-bold text-gray-900 mb-1">{stats.conversations}</p>
+            <p className="text-3xl font-bold text-gray-900 mb-1">--</p>
             <p className="text-xs text-gray-500 font-medium">Conversations</p>
           </div>
         </div>
 
         {/* Quick Actions */}
         <h3 className="font-semibold text-gray-900 mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-2 gap-4">
           <Link
             href="/dashboard/conversations"
             className="bg-white rounded-2xl border border-gray-200 p-5 hover:border-indigo-300 hover:shadow-lg hover:shadow-indigo-500/10 transition-all group"
@@ -198,40 +287,132 @@ export default function DashboardPage() {
             </div>
           </Link>
         </div>
-
-        {/* Recent Activity */}
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h3 className="font-semibold text-gray-900">Recent Conversations</h3>
-            <Link href="/dashboard/conversations" className="text-indigo-600 text-sm font-medium hover:text-indigo-700">
-              View all →
-            </Link>
-          </div>
-          <div className="divide-y divide-gray-100">
-            {[
-              { name: 'Sarah M.', message: 'Thanks for the quick response!', time: '2 min ago', platform: 'instagram' },
-              { name: 'Mike R.', message: 'Can I book for Saturday?', time: '15 min ago', platform: 'facebook' },
-              { name: 'Jessica L.', message: 'What are your prices?', time: '1 hr ago', platform: 'instagram' },
-            ].map((convo, i) => (
-              <div key={i} className="px-5 py-4 hover:bg-gray-50 transition-colors cursor-pointer">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center text-indigo-600 font-semibold text-sm">
-                    {convo.name[0]}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm text-gray-900">{convo.name}</span>
-                      <span className="text-xs text-gray-400">via {convo.platform}</span>
-                    </div>
-                    <p className="text-sm text-gray-500 truncate">{convo.message}</p>
-                  </div>
-                  <span className="text-xs text-gray-400 flex-shrink-0">{convo.time}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </main>
     </div>
   )
+}
+
+export default function DashboardPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [user, setUser] = useState<User | null>(null)
+  const [connection, setConnection] = useState<ConnectionStatus | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  const checkConnection = async (locationId: string, token: string) => {
+    try {
+      const res = await fetch(
+        `https://apex-dashboard-api-5r3u.onrender.com/ghl/connection-status/${locationId}`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      )
+      if (res.ok) {
+        const data = await res.json()
+        setConnection(data)
+      } else {
+        // Default to not connected if we can't check
+        setConnection({ facebook: false, instagram: false })
+      }
+    } catch {
+      setConnection({ facebook: false, instagram: false })
+    }
+  }
+
+  useEffect(() => {
+    const init = async () => {
+      // Check for SSO token in URL (from GHL custom menu link)
+      const ssoToken = searchParams.get('token')
+      
+      if (ssoToken) {
+        const payload = decodeJWT(ssoToken)
+        if (payload && payload.email) {
+          const userData = {
+            email: payload.email,
+            businessName: payload.businessName || '',
+            locationId: payload.locationId || ''
+          }
+          
+          localStorage.setItem('apex_token', ssoToken)
+          localStorage.setItem('apex_user', JSON.stringify(userData))
+          
+          // Remove token from URL
+          const url = new URL(window.location.href)
+          url.searchParams.delete('token')
+          window.history.replaceState({}, '', url.toString())
+          
+          setUser(userData)
+          if (userData.locationId) {
+            await checkConnection(userData.locationId, ssoToken)
+          }
+          setLoading(false)
+          return
+        }
+      }
+      
+      // Normal session check
+      const token = localStorage.getItem('apex_token')
+      const userDataStr = localStorage.getItem('apex_user')
+      
+      if (!token || !userDataStr) {
+        router.push('/')
+        return
+      }
+
+      const userData = JSON.parse(userDataStr)
+      
+      // Try to get locationId from token if not in userData
+      if (!userData.locationId && token) {
+        const payload = decodeJWT(token)
+        if (payload?.locationId) {
+          userData.locationId = payload.locationId
+          localStorage.setItem('apex_user', JSON.stringify(userData))
+        }
+      }
+      
+      setUser(userData)
+      if (userData.locationId) {
+        await checkConnection(userData.locationId, token)
+      } else {
+        setConnection({ facebook: false, instagram: false })
+      }
+      setLoading(false)
+    }
+    
+    init()
+  }, [router, searchParams])
+
+  const handleLogout = () => {
+    localStorage.removeItem('apex_token')
+    localStorage.removeItem('apex_user')
+    router.push('/')
+  }
+
+  const handleRefresh = async () => {
+    if (user?.locationId) {
+      const token = localStorage.getItem('apex_token')
+      if (token) {
+        setLoading(true)
+        await checkConnection(user.locationId, token)
+        setLoading(false)
+      }
+    }
+  }
+
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="w-10 h-10 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-500">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show setup screen if not connected
+  if (connection && !connection.facebook && !connection.instagram) {
+    return <SetupScreen user={user} onRefresh={handleRefresh} />
+  }
+
+  // Show main dashboard
+  return <MainDashboard user={user} connection={connection || { facebook: false, instagram: false }} onLogout={handleLogout} />
 }
