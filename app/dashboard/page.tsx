@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 interface User {
@@ -294,7 +294,6 @@ function MainDashboard({ user, connection, onLogout }: { user: User; connection:
 
 export default function DashboardPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [user, setUser] = useState<User | null>(null)
   const [connection, setConnection] = useState<ConnectionStatus | null>(null)
   const [loading, setLoading] = useState(true)
@@ -320,7 +319,9 @@ export default function DashboardPage() {
   useEffect(() => {
     const init = async () => {
       // Check for SSO token in URL (from GHL custom menu link)
-      const ssoToken = searchParams.get('token')
+      // Read directly from window.location to avoid Next.js hydration issues
+      const urlParams = new URLSearchParams(window.location.search)
+      const ssoToken = urlParams.get('token')
       
       if (ssoToken) {
         const payload = decodeJWT(ssoToken)
@@ -378,7 +379,7 @@ export default function DashboardPage() {
     }
     
     init()
-  }, [router, searchParams])
+  }, [router])
 
   const handleLogout = () => {
     localStorage.removeItem('apex_token')
