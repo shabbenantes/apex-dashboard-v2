@@ -27,7 +27,7 @@ function decodeJWT(token: string): any {
   }
 }
 
-// Setup/Onboarding Screen - Clean design matching dashboard
+// Setup/Onboarding Screen - Using inline styles for reliability
 function SetupScreen({ user, onRefresh }: { user: User; onRefresh: () => void }) {
   const [copiedEmail, setCopiedEmail] = useState(false)
   const [copiedPassword, setCopiedPassword] = useState(false)
@@ -46,126 +46,109 @@ function SetupScreen({ user, onRefresh }: { user: User; onRefresh: () => void })
     }
   }
 
+  const styles = {
+    page: { minHeight: '100vh', backgroundColor: '#f9fafb', fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif' },
+    header: { backgroundColor: 'white', borderBottom: '1px solid #e5e7eb', padding: '0 16px' },
+    headerInner: { maxWidth: '448px', margin: '0 auto', height: '56px', display: 'flex', alignItems: 'center', gap: '8px' },
+    logo: { width: '32px', height: '32px', backgroundColor: '#10b981', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '14px' },
+    logoText: { fontWeight: '600', color: '#111827' },
+    main: { maxWidth: '448px', margin: '0 auto', padding: '24px 16px' },
+    card: { backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb', marginBottom: '16px', overflow: 'hidden' },
+    statusCard: { padding: '16px', display: 'flex', alignItems: 'center', gap: '12px' },
+    statusIcon: { width: '40px', height: '40px', backgroundColor: '#fef3c7', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' },
+    statusTitle: { fontWeight: '500', color: '#111827', margin: 0 },
+    statusSub: { fontSize: '14px', color: '#6b7280', margin: '4px 0 0 0' },
+    cardHeader: { padding: '16px', borderBottom: '1px solid #f3f4f6' },
+    cardHeaderText: { fontSize: '14px', color: '#4b5563', margin: 0 },
+    credSection: { padding: '16px' },
+    credRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#f9fafb', borderRadius: '8px', padding: '12px', marginBottom: '12px' },
+    credLabel: { fontSize: '11px', color: '#9ca3af', textTransform: 'uppercase' as const, margin: 0 },
+    credValue: { fontSize: '14px', fontWeight: '500', color: '#111827', margin: '4px 0 0 0' },
+    copyBtn: { fontSize: '12px', color: '#6b7280', padding: '4px 8px', borderRadius: '4px', border: '1px solid #e5e7eb', backgroundColor: 'white', cursor: 'pointer' },
+    connectBtn: { display: 'block', width: '100%', padding: '14px 16px', backgroundColor: '#10b981', color: 'white', fontWeight: '500', textAlign: 'center' as const, borderRadius: '8px', textDecoration: 'none', fontSize: '15px' },
+    afterSection: { padding: '16px' },
+    afterLabel: { fontSize: '11px', color: '#9ca3af', textTransform: 'uppercase' as const, marginBottom: '12px' },
+    afterItem: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: '#4b5563', marginBottom: '8px' },
+    checkmark: { color: '#10b981' },
+    refreshBtn: { background: 'none', border: 'none', fontSize: '14px', color: '#10b981', cursor: 'pointer', marginTop: '24px' },
+    support: { fontSize: '12px', color: '#9ca3af', marginTop: '16px', textAlign: 'center' as const },
+    supportLink: { color: '#10b981', textDecoration: 'none' }
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header - matches dashboard */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
-              <span className="text-white text-sm">⚡</span>
-            </div>
-            <span className="font-semibold text-gray-900">Apex</span>
-          </div>
+    <div style={styles.page}>
+      <header style={styles.header}>
+        <div style={styles.headerInner}>
+          <div style={styles.logo}>⚡</div>
+          <span style={styles.logoText}>Apex</span>
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-4 py-6">
+      <main style={styles.main}>
         {/* Status card */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
-              <span className="text-amber-600 text-lg">🔗</span>
-            </div>
+        <div style={styles.card}>
+          <div style={styles.statusCard}>
+            <div style={styles.statusIcon}>🔗</div>
             <div>
-              <p className="font-medium text-gray-900">Connect Your Accounts</p>
-              <p className="text-sm text-gray-500">One-time setup to activate your AI</p>
+              <p style={styles.statusTitle}>Connect Your Accounts</p>
+              <p style={styles.statusSub}>One-time setup to activate your AI</p>
             </div>
           </div>
         </div>
 
-        {/* Instructions */}
-        <div className="bg-white rounded-xl border border-gray-200 mb-4">
-          <div className="p-4 border-b border-gray-100">
-            <p className="text-sm text-gray-600">
-              Log in with these credentials, then connect your Facebook & Instagram:
-            </p>
+        {/* Credentials card */}
+        <div style={styles.card}>
+          <div style={styles.cardHeader}>
+            <p style={styles.cardHeaderText}>Log in with these credentials, then connect your Facebook & Instagram:</p>
           </div>
           
-          {/* Credentials */}
-          <div className="p-4 space-y-3">
-            <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+          <div style={styles.credSection}>
+            <div style={styles.credRow}>
               <div>
-                <p className="text-xs text-gray-400 uppercase">Email</p>
-                <p className="text-sm font-medium text-gray-900">{user.email}</p>
+                <p style={styles.credLabel}>Email</p>
+                <p style={styles.credValue}>{user.email}</p>
               </div>
-              <button 
-                onClick={() => copyToClipboard(user.email, 'email')}
-                className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 rounded border border-gray-200 bg-white"
-              >
+              <button style={styles.copyBtn} onClick={() => copyToClipboard(user.email, 'email')}>
                 {copiedEmail ? '✓' : 'Copy'}
               </button>
             </div>
             
-            <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+            <div style={{...styles.credRow, marginBottom: 0}}>
               <div>
-                <p className="text-xs text-gray-400 uppercase">Password</p>
-                <p className="text-sm font-medium text-gray-900">ApexStart2026!</p>
+                <p style={styles.credLabel}>Password</p>
+                <p style={styles.credValue}>ApexStart2026!</p>
               </div>
-              <button 
-                onClick={() => copyToClipboard('ApexStart2026!', 'password')}
-                className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 rounded border border-gray-200 bg-white"
-              >
+              <button style={styles.copyBtn} onClick={() => copyToClipboard('ApexStart2026!', 'password')}>
                 {copiedPassword ? '✓' : 'Copy'}
               </button>
             </div>
           </div>
           
-          {/* Button */}
-          <div className="p-4 pt-0">
-            {ghlConnectUrl ? (
-              <a
-                href={ghlConnectUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-lg transition-colors"
-              >
-                Connect Facebook & Instagram
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
+          <div style={{ padding: '0 16px 16px' }}>
+            {ghlConnectUrl && (
+              <a href={ghlConnectUrl} target="_blank" rel="noopener noreferrer" style={styles.connectBtn}>
+                Connect Facebook & Instagram →
               </a>
-            ) : (
-              <p className="text-center text-sm text-gray-500 py-2">
-                Contact support for your connection link
-              </p>
             )}
           </div>
         </div>
 
-        {/* What to expect */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-xs text-gray-400 uppercase mb-3">After connecting</p>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <span className="text-emerald-500">✓</span>
-              AI responds to DMs instantly, 24/7
-            </div>
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <span className="text-emerald-500">✓</span>
-              Sends your booking link automatically
-            </div>
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <span className="text-emerald-500">✓</span>
-              You'll never miss a lead again
-            </div>
+        {/* After connecting */}
+        <div style={styles.card}>
+          <div style={styles.afterSection}>
+            <p style={styles.afterLabel}>After connecting</p>
+            <div style={styles.afterItem}><span style={styles.checkmark}>✓</span> AI responds to DMs instantly, 24/7</div>
+            <div style={styles.afterItem}><span style={styles.checkmark}>✓</span> Sends your booking link automatically</div>
+            <div style={{...styles.afterItem, marginBottom: 0}}><span style={styles.checkmark}>✓</span> You&apos;ll never miss a lead again</div>
           </div>
         </div>
 
-        {/* Already connected */}
-        <div className="mt-6 text-center">
-          <button
-            onClick={onRefresh}
-            className="text-sm text-emerald-600 hover:text-emerald-700"
-          >
+        <div style={{ textAlign: 'center' }}>
+          <button style={styles.refreshBtn} onClick={onRefresh}>
             Already connected? Check status →
           </button>
-        </div>
-
-        {/* Support */}
-        <div className="mt-4 text-center">
-          <p className="text-xs text-gray-400">
-            Need help? <a href="mailto:support@getapexautomation.com" className="text-emerald-600">support@getapexautomation.com</a>
+          <p style={styles.support}>
+            Need help? <a href="mailto:support@getapexautomation.com" style={styles.supportLink}>support@getapexautomation.com</a>
           </p>
         </div>
       </main>
